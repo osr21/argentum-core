@@ -220,7 +220,9 @@ The full chain: **Marks (identity) → Argentum (karma) → Oasis (service price
 
 - [aeoess/agent-governance-vocabulary PR #96](https://github.com/aeoess/agent-governance-vocabulary/pull/96) — `crosswalk/mycelium-trails.yaml` v0.1 merged into main. Captures the byte-contract alignment between Mycelium TrailRecords and the APS vocabulary: `action_ref` derivation, `delegation_ref`, and multi-agent composition pattern.
 
-- [microsoft/agent-governance-toolkit PR #2244](https://github.com/microsoft/agent-governance-toolkit/pull/2244) — EvidenceAnchor proposal (open). Proposes a backend-agnostic pluggable anchoring interface for `agt-evidence.json`. Mycelium Trails is the reference on-chain backend for the community-plugin path; the `action_ref` canonicalization in the proposal aligns with the four preimage fields published in each TrailRecord.
+- [microsoft/agent-governance-toolkit PR #2244](https://github.com/microsoft/agent-governance-toolkit/pull/2244) — EvidenceAnchor SPI **merged** 2026-05-18. Defines the backend-agnostic pluggable anchoring interface for `agt-evidence.json`. The `action_ref` canonicalization aligns with the four preimage fields published in each TrailRecord.
+
+- [microsoft/agent-governance-toolkit PR #2381](https://github.com/microsoft/agent-governance-toolkit/pull/2381) — Mycelium Trails community plugin (open). Implements the EvidenceAnchor SPI on Arbitrum One. `anchor()` writes trail records via `argentum.rgiskard.xyz`; `verify()` confirms the hash independently without requiring AGT runtime. 19/19 tests. Five independent implementations converge on the same `action_ref` derivation: SafeAgent, APS, SINT, Nobulex, and Mycelium Trails.
 
 - [chox-cell/Sentinel-Alpha — AGENT_TRUST_LOOP_REFERENCE.md](https://github.com/chox-cell/Sentinel-Alpha/blob/main/docs/17_growth/AGENT_TRUST_LOOP_REFERENCE.md) — Mycelium cited as layer 5 in the agent trust loop reference architecture.
 
