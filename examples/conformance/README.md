@@ -18,10 +18,14 @@ Cross-validation baseline for external implementors (Nobulex/Gogani, SafeAgent, 
 ## action_ref derivation
 
 ```
-action_ref = SHA-256(agent_id + ":" + action_type + ":" + scope + ":" + ts)
+preimage  = JCS(RFC 8785) of {"action_type", "agent_id", "scope", "timestamp"}
+            — keys in lexicographic order, no whitespace, UTF-8
+action_ref = SHA-256(preimage) → lowercase hex (64 chars)
 ```
 
-All preimage fields are in each fixture under `trail_record.preimage`. Any party can recompute independently.
+All preimage fields are in each fixture under `trail_record.preimage` and the
+verbatim JCS payload under `trail_record.jcs_payload`. Any party can recompute
+independently without trusting the emitting system.
 
 ## Verify against live endpoint
 
