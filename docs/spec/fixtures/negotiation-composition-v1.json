@@ -1,0 +1,30 @@
+{
+  "_comment": "Skeleton fixture — fill real values when Liuyanfeng example arrives. negotiation_ref is a SHA-256 hex of the negotiation artifact (agreement, covenant, capability-grant).",
+  "packet_version": "1.0",
+  "action_ref": "<sha256-hex — compute_action_ref(agent_id, action_type, scope, timestamp)>",
+  "negotiation_ref": "<sha256-hex — hash of the negotiation artifact>",
+  "trail_id": "<uuid — assigned by Mycelium on commit>",
+  "tx_hash": "<base-mainnet-tx-hash or lightning-payment-hash>",
+  "preimage": {
+    "agent_id": "<stable agent identifier>",
+    "action_type": "<semantic label, e.g. negotiation.accept>",
+    "scope": "<authorization boundary>",
+    "timestamp": "<RFC 3339 UTC, 3-digit ms, e.g. 2026-05-21T10:00:00.000Z>"
+  },
+  "hash_algo": "sha256",
+  "preimage_format": "jcs-rfc8785",
+  "extensions": {
+    "security": {
+      "risk_level": null,
+      "attestation_count": null
+    },
+    "resource": {
+      "cost_sats": null,
+      "payment_method": null
+    },
+    "protocol": {
+      "negotiation_protocol": null,
+      "rounds": null
+    }
+  }
+}

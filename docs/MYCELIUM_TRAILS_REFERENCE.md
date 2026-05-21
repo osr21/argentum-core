@@ -34,6 +34,7 @@ A trail is written when an agent successfully completes a paid action.
 | `success` | boolean | Whether the action completed successfully |
 | `scope` | string \| null | What the agent was authorized to do (optional, v2) |
 | `delegation_ref` | string \| null | Opaque reference to the delegation chain that originated this action (optional, v2) |
+| `negotiation_ref` | string \| null | SHA-256 hex pointer to the negotiation artifact that preceded this action (optional, v4). Does not enter the `action_ref` preimage. |
 
 ### scope and delegation_ref — v2 optional fields
 
@@ -206,6 +207,7 @@ When an agent delegates to another agent, each step in the chain writes its own 
 |---|---|---|
 | `parent_trail_id` | UUID \| null | Trail that spawned this one. `null` if this is the chain root. |
 | `root_trail_id` | UUID \| null | First trail in the chain. `null` if this trail is itself the root. |
+| `negotiation_ref` | string \| null | SHA-256 hex pointer to the negotiation artifact (agreement, covenant, capability-grant) that preceded this action. Stored verbatim — Mycelium does not parse or validate the referenced document. `null` when not supplied. Does not enter the `action_ref` preimage. |
 
 Both fields are `null` when not supplied. Backward-compatible: v2 consumers are unaffected.
 

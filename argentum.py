@@ -29,6 +29,7 @@ MEMORY_URL        = "http://localhost:8005"
 MARKS_URL         = "http://localhost:8015"
 MARKS_API_KEY     = os.environ.get("MARKS_API_KEY", "")
 ARBITRUM_CONTRACT = "0xD467CD1e34515d58F98f8Eb66C0892643ec86AD3"
+PAYG_WALLET       = os.environ.get("PAYG_WALLET", "")  # RAMA wallet — PAYG receiver Arbitrum mainnet
 ARGT_CONTRACT     = "0x42385c1038f3fec0ecCFBD4E794dE69935e89784"
 DB_PATH           = Path(__file__).parent / "argentum.db"
 TRAILS_DB         = str(Path(__file__).parent / "trails.db")
@@ -795,8 +796,8 @@ def payg_topup_usdc(request: Request, req: PaygTopupUsdcReq):
         "api_key":        req.api_key,
         "trails":         req.trails,
         "usdc_amount":    usdc_amount,
-        "deposit_address": ARBITRUM_CONTRACT,  # owner wallet recibe, ops acredita manualmente
-        "network":        "Base mainnet (eip155:8453)",
+        "deposit_address": PAYG_WALLET,
+        "network":        "Arbitrum mainnet (eip155:42161)",
         "token":          "USDC",
         "memo":           f"payg:{req.api_key}:{req.trails}",
         "note":           "v1: manual crediting within 24h after deposit confirmed on-chain.",
@@ -1775,6 +1776,7 @@ async def nexus_trail(request: Request):
     action_ref = body.get("action_ref", "")
     service = body.get("service", "")
     payment_hash = body.get("payment_hash", "") or ""
+    negotiation_ref = body.get("negotiation_ref") or None
     preimage = body.get("preimage") or {}
 
     agent_id = preimage.get("agent_id", "")
@@ -1819,6 +1821,7 @@ async def nexus_trail(request: Request):
         success=True,
         scope=scope or None,
         delegation_ref=payment_hash or None,  # payment_hash externo NEXUS
+        negotiation_ref=negotiation_ref,
     )
 
     if trail_id is None:
@@ -1839,6 +1842,7 @@ async def nexus_trail(request: Request):
         "service": service,
         "operation": action_type,
         "action_ref": action_ref,
+        "negotiation_ref": negotiation_ref,
         "payment_hash": payment_hash or None,
         "trail_status": "committed",
     }, status_code=201)

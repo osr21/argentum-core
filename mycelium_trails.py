@@ -41,6 +41,7 @@ _DDL = [
         delegation_ref  TEXT,
         parent_trail_id TEXT,
         root_trail_id   TEXT,
+        negotiation_ref TEXT,
         created_at      INTEGER DEFAULT (strftime('%s','now'))
     )
     """,
@@ -73,6 +74,7 @@ _DDL_MIGRATIONS = [
     "ALTER TABLE trails ADD COLUMN delegation_ref TEXT",
     "ALTER TABLE trails ADD COLUMN parent_trail_id TEXT",
     "ALTER TABLE trails ADD COLUMN root_trail_id TEXT",
+    "ALTER TABLE trails ADD COLUMN negotiation_ref TEXT",
 ]
 
 
@@ -133,12 +135,14 @@ def record_trail(
     delegation_ref: Optional[str] = None,
     parent_trail_id: Optional[str] = None,
     root_trail_id: Optional[str] = None,
+    negotiation_ref: Optional[str] = None,
 ) -> Optional[str]:
     """Graba un trail. Retorna trail_id o None si cae por rate limit o input invalido.
 
     Precondicion: la firma Ed25519 ya fue verificada por el caller.
     parent_trail_id: ID del trail que generó éste (None si es raíz).
     root_trail_id:   ID del trail origen de la cadena (None si es raíz).
+    negotiation_ref: SHA-256 hex del artefacto de negociación previo (opcional). No entra en el preimage de action_ref.
     """
     if not (agent_id and service and operation and nonce):
         return None
@@ -161,8 +165,8 @@ def record_trail(
             INSERT INTO trails
               (trail_id, agent_id, service, operation, timestamp,
                karma_at_time, success, signature_ref, scope, delegation_ref,
-               parent_trail_id, root_trail_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               parent_trail_id, root_trail_id, negotiation_ref)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 trail_id,
@@ -177,6 +181,7 @@ def record_trail(
                 delegation_ref,
                 parent_trail_id,
                 root_trail_id,
+                negotiation_ref,
             ),
         )
         return trail_id
@@ -199,6 +204,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
         "delegation_ref": row["delegation_ref"] if "delegation_ref" in keys else None,
         "parent_trail_id": row["parent_trail_id"] if "parent_trail_id" in keys else None,
         "root_trail_id": row["root_trail_id"] if "root_trail_id" in keys else None,
+        "negotiation_ref": row["negotiation_ref"] if "negotiation_ref" in keys else None,
     }
 
 
@@ -214,7 +220,7 @@ def list_trails_by_agent(
             """
             SELECT trail_id, agent_id, service, operation, timestamp,
                    karma_at_time, success, signature_ref, scope, delegation_ref,
-                   parent_trail_id, root_trail_id
+                   parent_trail_id, root_trail_id, negotiation_ref
             FROM trails
             WHERE agent_id=?
             ORDER BY timestamp DESC
@@ -234,7 +240,7 @@ def get_trail_by_id(db_path: str, trail_id: str) -> Optional[dict]:
             """
             SELECT trail_id, agent_id, service, operation, timestamp,
                    karma_at_time, success, signature_ref, scope, delegation_ref,
-                   parent_trail_id, root_trail_id
+                   parent_trail_id, root_trail_id, negotiation_ref
             FROM trails WHERE trail_id=?
             """,
             (trail_id,),
