@@ -135,6 +135,12 @@ proves *which* policy was referenced — `policy_version` proves *whether it was
 current* at execution time. A verifier replaying the receipt after a policy rotation can
 use this field to establish that the admitted policy was not superseded before execution.
 
+**`authority_verified_at_ms`** (integer, optional) — Unix timestamp in milliseconds at
+which the delegation authority was verified at issuance. This is the issuance-side anchor:
+it records when the acting agent's authority was confirmed before the action was admitted.
+A year-5 supervisor re-verifying a receipt can use this field to establish the issuance
+boundary independently of the execution-time check.
+
 **`revocation_check_at_ms`** (integer, optional) — Unix timestamp in milliseconds of the
 last non-revocation check performed before execution. A receipt without this field cannot
 prove the agent's credentials were valid immediately before the action was admitted — only
@@ -156,6 +162,7 @@ window of credential exposure.
     "timestamp": "2026-05-15T10:00:00.123Z"
   },
   "policy_version": "2026-05-01",
+  "authority_verified_at_ms": 1747568400000,
   "revocation_check_at_ms": 1747568431000
 }
 ```
