@@ -155,7 +155,7 @@ Sin costo legal adicional.
 ### Mecanismo core
 - ERC-20 + ERC-20Votes en Base (fees bajos) + bridge a Arbitrum
 - Staking para reducir fees de trails/memory/search
-- Revenue share: % de fees del ecosistema → tesorería → stakers
+- Fee rebate: stakers pagan menos fees de trails/memory/search → tesorería absorbe el delta
 - Agent-native: agentes pueden adquirir $RAMA via MCP tool + x402
 
 ### Condición para notificar integradores (aeoess, chox-cell)
