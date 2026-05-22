@@ -113,6 +113,95 @@ and confirmed by @Liuyanfeng1234 (Trust_Ledger tier-transition model) and @Keesa
 
 ---
 
+## Candidate 3 — Karma as value layer over the anchor
+
+### The gap the anchor alone does not fill
+
+An anchor proves that a specific action occurred at a specific time. It does not answer a
+different question: *how much should a verifier trust the agent who anchored it?*
+
+Two trails with identical `action_ref` derivations and valid on-chain anchors are
+cryptographically equivalent — but they are not epistemically equivalent if one was
+produced by an agent with zero verified history and the other by an agent with 200 verified
+actions attested by independent parties.
+
+The anchor is a fact. The karma is a claim about the agent behind the fact. Systems that
+need to make decisions based on anchored receipts need both.
+
+### The design
+
+ARGENTUM adds a karma layer that accumulates over verified actions and is separately
+verifiable from the anchor itself.
+
+**Structure:**
+
+```
+anchor (on-chain, immutable) ──► proves: what happened, when
+karma  (signed badge, portable) ──► proves: who did it, what they've demonstrated
+```
+
+The two are independent verification paths. A verifier can check the anchor without trusting
+ARGENTUM, and check the karma badge without trusting the agent. Neither path requires
+trusting the other.
+
+**Karma badge format:**
+
+```json
+{
+  "agent_id": "nexus-oracle-v1",
+  "karma": 36,
+  "verified_at": "2026-05-22T13:39:58Z",
+  "verified_actions": 4,
+  "source": "https://argentum-api.rgiskard.xyz/karma/nexus-oracle-v1",
+  "signature": "<Ed25519 base64>",
+  "verify_key": "gdvrkAuw22AUH8+goZPZIYw2W3sLT/pPX3himAfnQIk="
+}
+```
+
+The badge is signed by the Argentum server key. The public verification key is published
+in the README and pinned at `GET /karma/{agent_id}`. Any party holding the four badge
+fields and the signature can verify offline — no network call required.
+
+### Why this belongs in the Consilium substrate
+
+The Consilium methodology asks for shipped specs with named integrators. The karma layer
+meets this bar:
+
+1. **Shipped:** `GET /karma/{agent_id}` live in production since 2026-05-22.
+   `POST /karma/{agent_id}/verify` for offline verification.
+   Commit: [`5715637`](https://github.com/giskard09/argentum-core/commit/5715637).
+
+2. **Independently verifiable:** The Ed25519 public key is hardcoded in the README.
+   Any downstream service can verify a badge without an ARGENTUM API call.
+
+3. **Named gatekeeper:** Soma marketplace (`https://soma.rgiskard.xyz`) is the first
+   service to require `karma ≥ 1` as a condition of access. Agents with zero verified
+   history receive a 403 with `how_to_earn` pointing back to ARGENTUM. This is a live
+   production deployment of karma as an access credential — not a design proposal.
+
+### The distinction that matters for Consilium
+
+The execution-boundary invariant in Candidate 2 answers: *did the action occur?*
+
+The karma layer answers: *is the agent who claims to have acted credible?*
+
+Both questions need to be answerable for a receipt to be operationally useful in
+multi-agent systems. A receipt from an unverified agent anchored on-chain is better than
+no receipt — but a receipt from a verified agent with demonstrated history is a different
+class of signal. The substrate should name this distinction explicitly.
+
+### The named gap
+
+The current karma score is a scalar. It does not encode *domain specificity*: an agent
+with 200 karma in document processing and 0 karma in financial transactions carries the
+same number. Downstream systems making trust decisions benefit from knowing whether the
+karma was accumulated in a domain relevant to the current action type.
+
+Domain-weighted karma is a proposed extension — not shipped. Named here as a known gap,
+consistent with Consilium methodology.
+
+---
+
 ## Candidate 5 — Real-world deployment patterns
 
 ### Named integrator
@@ -188,6 +277,9 @@ appendix.
 | Execution-boundary spec | [docs/spec/action-ref.md](docs/spec/action-ref.md) |
 | Reference implementation | [plugins/agt_evidence_anchor/action_ref.py](plugins/agt_evidence_anchor/action_ref.py) |
 | CTEF v0.3.3 fixture set | [commit b23941a](https://github.com/giskard09/argentum-core/commit/b23941a) |
+| Karma badge endpoint | `GET https://argentum-api.rgiskard.xyz/karma/{agent_id}` |
+| Karma badge verify key | `gdvrkAuw22AUH8+goZPZIYw2W3sLT/pPX3himAfnQIk=` |
+| Soma karma gate (live gatekeeper) | [soma-karma-gate.md](https://github.com/giskard09/soma/blob/main/soma-karma-gate.md) |
 | Adopters (named integrators) | [ADOPTERS.md](ADOPTERS.md) |
 | Joint spec with SafeAgent | [argentum-core#7](https://github.com/giskard09/argentum-core/issues/7) |
 | Fifth-layer issue (A2A) | [a2aproject/A2A#1847](https://github.com/a2aproject/A2A/issues/1847) |
