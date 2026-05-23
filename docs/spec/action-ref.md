@@ -39,8 +39,27 @@ Reference implementation: [`plugins/agt_evidence_anchor/action_ref.py`](../../pl
 |-------|------|-------------|
 | `agent_id` | string | Stable identifier for the agent (DID, username, or opaque string) |
 | `action_type` | string | What the agent did — semantic label (`code.execute`, `payment.send`, etc.) |
-| `scope` | string | Declared authorization boundary — what the agent was allowed to do, not what it did. Pass `""` if not applicable. |
+| `scope` | string | Declared authorization boundary — what the agent was allowed to do, not what it did. Free-form non-empty string; see [Scope conventions](#scope-conventions). Pass `""` if not applicable. |
 | `timestamp` | string | RFC 3339 UTC with 3-digit millisecond precision. Format: `"2026-05-15T10:00:00.123Z"`. The trailing `Z` is mandatory. |
+
+## Scope conventions
+
+`scope` is a free-form non-empty string with no closed enum. Any value is valid as long as it is non-empty and consistent across all parties deriving the same `action_ref`.
+
+**Recommended convention (non-normative):** namespace-prefix with the emitter identifier using `<emitter>:<scope>`.
+
+```
+algovoi:compliance_screen
+vauban:stark_settlement
+agent_os:committed_claim
+aura:reputation_observe
+```
+
+These examples are verified in production trails anchored on-chain via Mycelium.
+
+**Rationale:** different emitters may independently choose the same scope string (`audit`, `settlement`, `signal`) with semantically distinct meanings. Prefixing avoids collisions when trails from multiple emitters are verified or aggregated by a third party.
+
+Emitters that do not namespace their scope remain valid — the convention is a recommendation, not a requirement. A verifier MUST NOT reject a trail solely because its `scope` lacks a namespace prefix.
 
 ## Serialization — JCS (RFC 8785)
 
