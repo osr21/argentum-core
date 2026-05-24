@@ -1,0 +1,46 @@
+{
+  "fixture_id": "idempotency-ref-v1",
+  "version": "v1",
+  "spec": "docs/spec/idempotency-ref.md",
+  "spec_stable_ref": "https://github.com/giskard09/argentum-core/blob/idempotency-ref-v1.0/docs/spec/idempotency-ref.md",
+  "hash_algo": "sha256",
+  "artifact_format": "jcs-rfc8785-v1",
+  "generated_at": "2026-05-24",
+  "purpose": "Formal conformance substrate for idempotency-ref-v1. An external implementer who reproduces idempotency_ref byte-identical from the stated idempotency_artifact has a conformant implementation. idempotency_ref never enters the action_ref preimage.",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\nidempotency_ref = hashlib.sha256(jcs(idempotency_artifact).encode()).hexdigest()",
+  "vectors": [
+    {
+      "id": "idem-001-payment-send",
+      "description": "pioneer-agent-001 submits payment.send with a client-generated idempotency_key and a 5-minute deduplication window (300000ms). A second submission with the same idempotency_artifact within the window MUST be detected as a duplicate. The COMMITTED record with this idempotency_ref is the canonical outcome.",
+      "idempotency_artifact": {
+        "action_type": "payment.send",
+        "agent_id": "pioneer-agent-001",
+        "idempotency_key": "idem_7f3a9b2c4d1e8f05",
+        "scope": "mycelium:payment",
+        "version": "idempotency-ref-v1",
+        "window_ms": 300000
+      },
+      "artifact_jcs_payload": "{\"action_type\":\"payment.send\",\"agent_id\":\"pioneer-agent-001\",\"idempotency_key\":\"idem_7f3a9b2c4d1e8f05\",\"scope\":\"mycelium:payment\",\"version\":\"idempotency-ref-v1\",\"window_ms\":300000}",
+      "artifact_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227061796d656e742e73656e64222c226167656e745f6964223a2270696f6e6565722d6167656e742d303031222c226964656d706f74656e63795f6b6579223a226964656d5f37663361396232633464316538663035222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a226964656d706f74656e63792d7265662d7631222c2277696e646f775f6d73223a3330303030307d",
+      "idempotency_ref": "4a6aa060624b6e3ec4fafb941a546e5842d0a1172861f6d21ffec9de4b098a97",
+      "action_preimage": {
+        "action_type": "payment.send",
+        "agent_id": "pioneer-agent-001",
+        "scope": "mycelium:payment",
+        "timestamp": "2026-05-24T10:00:00.000Z"
+      },
+      "action_preimage_jcs_payload": "{\"action_type\":\"payment.send\",\"agent_id\":\"pioneer-agent-001\",\"scope\":\"mycelium:payment\",\"timestamp\":\"2026-05-24T10:00:00.000Z\"}",
+      "action_preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227061796d656e742e73656e64222c226167656e745f6964223a2270696f6e6565722d6167656e742d303031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2274696d657374616d70223a22323032362d30352d32345431303a30303a30302e3030305a227d",
+      "action_ref": "063a4383ba0d8168ca69ac6cc61e81015d6e017b355bb327d8c0d90c359e216c",
+      "invariants": {
+        "idempotency_ref_not_in_preimage": "idempotency_ref does not appear in action_preimage — action_ref determined solely by action_type, agent_id, scope, timestamp",
+        "independent_hashes": "idempotency_ref = SHA-256(JCS(idempotency_artifact)); action_ref = SHA-256(JCS(action_preimage)); neither derived from the other",
+        "window_semantics": "A PENDING record with this idempotency_ref older than window_ms (300000ms) from its timestamp SHOULD be treated as orphaned-PENDING (equivalent to FAILED for deduplication) — but the original record MUST NOT be mutated"
+      },
+      "notes": {
+        "idempotency_key": "Client-generated opaque string. Format is implementer-defined; only uniqueness within the deduplication window is required.",
+        "window_ms": "300000ms = 5 minutes. Represents the deduplication window — not a TTL on the trail record itself."
+      }
+    }
+  ]
+}

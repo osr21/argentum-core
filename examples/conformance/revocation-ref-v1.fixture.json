@@ -1,0 +1,53 @@
+{
+  "fixture_id": "revocation-ref-v1",
+  "version": "v1",
+  "spec": "docs/spec/revocation-ref.md",
+  "spec_stable_ref": "https://github.com/giskard09/argentum-core/blob/revocation-ref-v1.0/docs/spec/revocation-ref.md",
+  "hash_algo": "sha256",
+  "artifact_format": "jcs-rfc8785-v1",
+  "generated_at": "2026-05-24",
+  "purpose": "Formal conformance substrate for revocation-ref-v1. An external implementer who reproduces revocation_ref byte-identical from the stated revocation_artifact has a conformant implementation. The revocation is itself a trail action with its own action_ref, independent of the revocation_ref.",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\nrevocation_ref = hashlib.sha256(jcs(revocation_artifact).encode()).hexdigest()",
+  "vectors": [
+    {
+      "id": "rev-001-credential-expired",
+      "description": "giskard-self revokes the delegation granted to pioneer-agent-001 (action_ref 584bc79b...) because the credential expired. The revocation is itself a trail action (action_type: authorization.revoke) with its own action_ref. The original delegation trail record is NOT mutated — the revocation is an append-only event.",
+      "revocation_artifact": {
+        "reason": "credential_expired",
+        "revocation_key": "rev_a9f3b1c2d4e5",
+        "revoked_action_ref": "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "revoked_at": "2026-05-24T11:00:00.000Z",
+        "revoker": "giskard-self",
+        "scope": "mycelium:payment",
+        "version": "revocation-ref-v1"
+      },
+      "artifact_jcs_payload": "{\"reason\":\"credential_expired\",\"revocation_key\":\"rev_a9f3b1c2d4e5\",\"revoked_action_ref\":\"584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f\",\"revoked_at\":\"2026-05-24T11:00:00.000Z\",\"revoker\":\"giskard-self\",\"scope\":\"mycelium:payment\",\"version\":\"revocation-ref-v1\"}",
+      "artifact_canonical_bytes_hex": "7b22726561736f6e223a2263726564656e7469616c5f65787069726564222c227265766f636174696f6e5f6b6579223a227265765f613966336231633264346535222c227265766f6b65645f616374696f6e5f726566223a2235383462633739626231316365336166353035386233646138346430336638356534616134363461313735626434663931336165623832613232636566363066222c227265766f6b65645f6174223a22323032362d30352d32345431313a30303a30302e3030305a222c227265766f6b6572223a226769736b6172642d73656c66222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a227265766f636174696f6e2d7265662d7631227d",
+      "revocation_ref": "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+      "revocation_action_preimage": {
+        "action_type": "authorization.revoke",
+        "agent_id": "giskard-self",
+        "scope": "mycelium:payment",
+        "timestamp": "2026-05-24T11:00:00.000Z"
+      },
+      "revocation_action_jcs_payload": "{\"action_type\":\"authorization.revoke\",\"agent_id\":\"giskard-self\",\"scope\":\"mycelium:payment\",\"timestamp\":\"2026-05-24T11:00:00.000Z\"}",
+      "revocation_action_canonical_bytes_hex": "7b22616374696f6e5f74797065223a22617574686f72697a6174696f6e2e7265766f6b65222c226167656e745f6964223a226769736b6172642d73656c66222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2274696d657374616d70223a22323032362d30352d32345431313a30303a30302e3030305a227d",
+      "revocation_action_ref": "fb4ef9fb6a1701f86c3b2c6625cdb10e169c4324cdb485e9cef08385f90023f9",
+      "chain": {
+        "delegation_action_ref": "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "revocation_action_ref": "fb4ef9fb6a1701f86c3b2c6625cdb10e169c4324cdb485e9cef08385f90023f9",
+        "note": "Verifier can walk: delegation trail record (action_ref=584bc7...) → revocation trail record (action_ref=fb4ef9..., revocation_ref=50cb4f...) → revocation_artifact. The chain is self-contained — no external lookups required."
+      },
+      "invariants": {
+        "revocation_ref_not_in_preimage": "revocation_ref does not appear in revocation_action_preimage — revocation_action_ref determined solely by action_type, agent_id, scope, timestamp",
+        "append_only": "The original delegation trail record (action_ref=584bc7...) is NOT mutated. The revocation creates a new trail record.",
+        "revoked_action_ref_links_back": "revoked_action_ref in the artifact equals the action_ref of the delegated action trail record — enabling verifier chain traversal without external lookups"
+      },
+      "notes": {
+        "revocation_key": "Client-generated to ensure uniqueness of the revocation artifact. Without it, identical revocations would produce the same revocation_ref.",
+        "no_retroactive_invalidation": "A COMMITTED trail record using the revoked delegation is still a valid historical record. Revocation applies to future use only.",
+        "revocation_check_at_ms": "See action-ref.md — dual-timestamps close the gap between 'was valid when I last checked' and 'became invalid at this exact moment'."
+      }
+    }
+  ]
+}

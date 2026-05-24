@@ -1,0 +1,47 @@
+{
+  "fixture_id": "delegation-ref-v2",
+  "version": "v1",
+  "spec": "docs/spec/delegation-ref.md",
+  "spec_stable_ref": "https://github.com/giskard09/argentum-core/blob/delegation-ref-v1.0/docs/spec/delegation-ref.md",
+  "hash_algo": "sha256",
+  "artifact_format": "jcs-rfc8785-v1",
+  "generated_at": "2026-05-24",
+  "purpose": "Full delegation_ref fixture with complete authorization chain artifact: delegator, delegatee, capability, scope, policy_version, expires_at. Companion to delegation-ref-v1.fixture.json (which showed opaque envelope field). This fixture verifies the artifact derivation per docs/spec/delegation-ref.md.",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\ndelegation_ref = hashlib.sha256(jcs(delegation_artifact).encode()).hexdigest()",
+  "vectors": [
+    {
+      "id": "deleg-001-payment-chain",
+      "description": "giskard-self delegates payment.send capability to pioneer-agent-001 within scope mycelium:payment, under policy 2026-05-01, expiring 2026-05-27. This is the canonical authorization chain artifact for delegation-ref-v1.",
+      "delegation_artifact": {
+        "capability": "payment.send",
+        "delegatee": "pioneer-agent-001",
+        "delegator": "giskard-self",
+        "expires_at": "2026-05-27T00:00:00.000Z",
+        "policy_version": "2026-05-01",
+        "scope": "mycelium:payment",
+        "version": "delegation-ref-v1"
+      },
+      "artifact_jcs_payload": "{\"capability\":\"payment.send\",\"delegatee\":\"pioneer-agent-001\",\"delegator\":\"giskard-self\",\"expires_at\":\"2026-05-27T00:00:00.000Z\",\"policy_version\":\"2026-05-01\",\"scope\":\"mycelium:payment\",\"version\":\"delegation-ref-v1\"}",
+      "artifact_canonical_bytes_hex": "7b226361706162696c697479223a227061796d656e742e73656e64222c2264656c656761746565223a2270696f6e6565722d6167656e742d303031222c2264656c656761746f72223a226769736b6172642d73656c66222c22657870697265735f6174223a22323032362d30352d32375430303a30303a30302e3030305a222c22706f6c6963795f76657273696f6e223a22323032362d30352d3031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a2264656c65676174696f6e2d7265662d7631227d",
+      "delegation_ref": "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+      "action_preimage": {
+        "action_type": "payment.send",
+        "agent_id": "pioneer-agent-001",
+        "scope": "mycelium:payment",
+        "timestamp": "2026-05-24T10:30:00.000Z"
+      },
+      "action_preimage_jcs_payload": "{\"action_type\":\"payment.send\",\"agent_id\":\"pioneer-agent-001\",\"scope\":\"mycelium:payment\",\"timestamp\":\"2026-05-24T10:30:00.000Z\"}",
+      "action_preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227061796d656e742e73656e64222c226167656e745f6964223a2270696f6e6565722d6167656e742d303031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2274696d657374616d70223a22323032362d30352d32345431303a33303a30302e3030305a227d",
+      "action_ref": "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+      "invariants": {
+        "delegation_ref_not_in_preimage": "delegation_ref does not appear in action_preimage — action_ref determined solely by action_type, agent_id, scope, timestamp",
+        "scope_match": "scope in delegation_artifact ('mycelium:payment') matches scope in action_preimage — conformant implementation SHOULD verify this",
+        "independent_hashes": "delegation_ref = SHA-256(JCS(delegation_artifact)); action_ref = SHA-256(JCS(action_preimage)); neither derived from the other"
+      },
+      "notes": {
+        "policy_version": "Identifies the governing policy in force when this delegation was issued — not when the action is executed.",
+        "expires_at": "Part of the artifact and enters the hash. Checking currency is the integrator's responsibility — the delegation_ref itself does not expire."
+      }
+    }
+  ]
+}
