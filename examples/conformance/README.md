@@ -154,6 +154,7 @@ action_ref = hashlib.sha256(jcs(preimage).encode()).hexdigest()
 # fdd7f810499f06be24355ca8e2bfb8c4b965cc80c838f41fa074683443d89f5a
 
 # Step 2 — build the CTEF envelope
+# trail_id and tx_hash are part of the canonical envelope for COMMITTED trails
 envelope = {
     "action_ref":      action_ref,
     "claim_type":      "continuity",
@@ -162,6 +163,8 @@ envelope = {
     "preimage":        preimage,
     "preimage_format": "jcs-rfc8785",
     "source_provider": "https://argentum-api.rgiskard.xyz",
+    "trail_id":        "ea145ca5-e9ac-4900-b583-a2e1bea61140",
+    "tx_hash":         "7fd0a8ededd1feb65ab37b3324218a0386dbf124174cf122bffc40717c057b84",
     "urn":             "urn:mycelium:trail",
 }
 
