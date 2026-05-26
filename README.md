@@ -374,6 +374,8 @@ ARGENTUM removes the judge. Action is witnessed by community, not scored by an a
 
 Agents and humans gain wisdom the same way: through a trace of witnessed good, accumulated over time.
 
+→ [Full manifesto](docs/MANIFESTO.md)
+
 ## Monitoring
 
 ```bash
