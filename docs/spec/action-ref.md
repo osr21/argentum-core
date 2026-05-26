@@ -231,6 +231,38 @@ The same `action_ref` is computable from:
 
 Any verifier holding one artifact can validate against another without trusting either system.
 
+## Use cases — gap class coverage
+
+### Memory provenance attestation (OWASP ASI06)
+
+`action_ref` with `action_type: "memory_write"` and `scope: <memory_key>` produces a
+content-addressed receipt per write. A verifier can check the receipt independently —
+no operator trust required. The receipt proves what was written, by which agent, at
+which moment.
+
+**Memory poisoning defense:** for `action_type: "memory_write"`, `scope` identifies the
+specific memory slot. A trail of write receipts gives a verifier the full provenance
+graph of any memory state — who wrote what, when, with what authorization. Combined
+with `delegation_ref` (who authorized the write) and `revocation_ref` (when that
+authorization was invalidated), the provenance chain is complete and independently
+replayable.
+
+**Example — memory write receipt (byte-verified):**
+
+```
+Input:
+  agent_id    = "giskard-self"
+  action_type = "memory_write"
+  scope       = "mycelium:memory:session_context_v3"
+  timestamp   = "2026-05-26T20:15:00.000Z"
+
+JCS payload:
+  {"action_type":"memory_write","agent_id":"giskard-self","scope":"mycelium:memory:session_context_v3","timestamp":"2026-05-26T20:15:00.000Z"}
+
+action_ref:
+  36fe8d0559bb254c20cdb0e7a0c83e53f0434fc076e856ff769444da2a73b0b4
+```
+
 ## Cross-references
 
 - Reference implementation: [`plugins/agt_evidence_anchor/action_ref.py`](../../plugins/agt_evidence_anchor/action_ref.py)
