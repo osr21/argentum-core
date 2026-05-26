@@ -1,0 +1,129 @@
+{
+  "fixture_id": "delegation-chain-ref-v1",
+  "version": "v1",
+  "spec": "docs/spec/delegation-chain-ref.md",
+  "spec_stable_ref": "https://github.com/giskard09/argentum-core/blob/delegation-chain-ref-v1.0/docs/spec/delegation-chain-ref.md",
+  "hash_algo": "sha256",
+  "artifact_format": "jcs-rfc8785-v1",
+  "generated_at": "2026-05-26",
+  "purpose": "Formal conformance substrate for delegation-chain-ref-v1. An external implementer who reproduces delegation_chain_ref byte-identical from the stated chain_artifact has a conformant implementation. The fixture demonstrates a 3-hop chain (giskard-self → pioneer-agent-001 → lightning → soma-agent) with independent per-hop delegation_ref values and backward-traversable parent_delegation_ref linkage.",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\ndelegation_chain_ref = hashlib.sha256(jcs(chain_artifact).encode()).hexdigest()",
+  "vectors": [
+    {
+      "id": "chain-001-three-hop-payment-route",
+      "description": "3-hop delegation chain: giskard-self authorizes pioneer-agent-001 (hop 0), pioneer-agent-001 authorizes lightning (hop 1), lightning authorizes soma-agent (hop 2). soma-agent executes payment.route. Each hop carries parent_delegation_ref linking backward to the root. delegation_chain_ref commits to the full sequence plus the leaf action_ref.",
+      "hops_detail": [
+        {
+          "hop_index": 0,
+          "delegator": "giskard-self",
+          "delegatee": "pioneer-agent-001",
+          "delegation_artifact": {
+            "capability":     "payment.route",
+            "delegatee":      "pioneer-agent-001",
+            "delegator":      "giskard-self",
+            "expires_at":     "2026-05-27T00:00:00.000Z",
+            "hop_index":      0,
+            "policy_version": "2026-05-01",
+            "scope":          "mycelium:payment",
+            "version":        "delegation-ref-v1"
+          },
+          "artifact_jcs_payload": "{\"capability\":\"payment.route\",\"delegatee\":\"pioneer-agent-001\",\"delegator\":\"giskard-self\",\"expires_at\":\"2026-05-27T00:00:00.000Z\",\"hop_index\":0,\"policy_version\":\"2026-05-01\",\"scope\":\"mycelium:payment\",\"version\":\"delegation-ref-v1\"}",
+          "artifact_canonical_bytes_hex": "7b226361706162696c697479223a227061796d656e742e726f757465222c2264656c656761746565223a2270696f6e6565722d6167656e742d303031222c2264656c656761746f72223a226769736b6172642d73656c66222c22657870697265735f6174223a22323032362d30352d32375430303a30303a30302e3030305a222c22686f705f696e646578223a302c22706f6c6963795f76657273696f6e223a22323032362d30352d3031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a2264656c65676174696f6e2d7265662d7631227d",
+          "delegation_ref": "fc49ff73ebd629bd3440455115a4ce09e69219f2374f6b0c7a2713a52a579b7e"
+        },
+        {
+          "hop_index": 1,
+          "delegator": "pioneer-agent-001",
+          "delegatee": "lightning",
+          "delegation_artifact": {
+            "capability":            "payment.route",
+            "delegatee":             "lightning",
+            "delegator":             "pioneer-agent-001",
+            "expires_at":            "2026-05-27T00:00:00.000Z",
+            "hop_index":             1,
+            "parent_delegation_ref": "fc49ff73ebd629bd3440455115a4ce09e69219f2374f6b0c7a2713a52a579b7e",
+            "policy_version":        "2026-05-01",
+            "scope":                 "mycelium:payment",
+            "version":               "delegation-ref-v1"
+          },
+          "artifact_jcs_payload": "{\"capability\":\"payment.route\",\"delegatee\":\"lightning\",\"delegator\":\"pioneer-agent-001\",\"expires_at\":\"2026-05-27T00:00:00.000Z\",\"hop_index\":1,\"parent_delegation_ref\":\"fc49ff73ebd629bd3440455115a4ce09e69219f2374f6b0c7a2713a52a579b7e\",\"policy_version\":\"2026-05-01\",\"scope\":\"mycelium:payment\",\"version\":\"delegation-ref-v1\"}",
+          "artifact_canonical_bytes_hex": "7b226361706162696c697479223a227061796d656e742e726f757465222c2264656c656761746565223a226c696768746e696e67222c2264656c656761746f72223a2270696f6e6565722d6167656e742d303031222c22657870697265735f6174223a22323032362d30352d32375430303a30303a30302e3030305a222c22686f705f696e646578223a312c22706172656e745f64656c65676174696f6e5f726566223a2266633439666637336562643632396264333434303435353131356134636530396536393231396632333734663662306337613237313361353261353739623765222c22706f6c6963795f76657273696f6e223a22323032362d30352d3031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a2264656c65676174696f6e2d7265662d7631227d",
+          "delegation_ref": "7243ad56d9b7d90200b0ad488150b00c6edea21a126cda0067573028f3ef73e9"
+        },
+        {
+          "hop_index": 2,
+          "delegator": "lightning",
+          "delegatee": "soma-agent",
+          "delegation_artifact": {
+            "capability":            "payment.route",
+            "delegatee":             "soma-agent",
+            "delegator":             "lightning",
+            "expires_at":            "2026-05-27T00:00:00.000Z",
+            "hop_index":             2,
+            "parent_delegation_ref": "7243ad56d9b7d90200b0ad488150b00c6edea21a126cda0067573028f3ef73e9",
+            "policy_version":        "2026-05-01",
+            "scope":                 "mycelium:payment",
+            "version":               "delegation-ref-v1"
+          },
+          "artifact_jcs_payload": "{\"capability\":\"payment.route\",\"delegatee\":\"soma-agent\",\"delegator\":\"lightning\",\"expires_at\":\"2026-05-27T00:00:00.000Z\",\"hop_index\":2,\"parent_delegation_ref\":\"7243ad56d9b7d90200b0ad488150b00c6edea21a126cda0067573028f3ef73e9\",\"policy_version\":\"2026-05-01\",\"scope\":\"mycelium:payment\",\"version\":\"delegation-ref-v1\"}",
+          "artifact_canonical_bytes_hex": "7b226361706162696c697479223a227061796d656e742e726f757465222c2264656c656761746565223a22736f6d612d6167656e74222c2264656c656761746f72223a226c696768746e696e67222c22657870697265735f6174223a22323032362d30352d32375430303a30303a30302e3030305a222c22686f705f696e646578223a322c22706172656e745f64656c65676174696f6e5f726566223a2237323433616435366439623764393032303062306164343838313530623030633665646561323161313236636461303036373537333032386633656637336539222c22706f6c6963795f76657273696f6e223a22323032362d30352d3031222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a2264656c65676174696f6e2d7265662d7631227d",
+          "delegation_ref": "e471778fe440b4373251a32ef1e04388d0be7e51bcb341deb2cec27f1f146669"
+        }
+      ],
+      "leaf_action": {
+        "preimage": {
+          "action_type": "payment.route",
+          "agent_id":    "soma-agent",
+          "scope":       "mycelium:payment",
+          "timestamp":   "2026-05-26T20:00:00.000Z"
+        },
+        "preimage_jcs_payload": "{\"action_type\":\"payment.route\",\"agent_id\":\"soma-agent\",\"scope\":\"mycelium:payment\",\"timestamp\":\"2026-05-26T20:00:00.000Z\"}",
+        "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227061796d656e742e726f757465222c226167656e745f6964223a22736f6d612d6167656e74222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2274696d657374616d70223a22323032362d30352d32365432303a30303a30302e3030305a227d",
+        "action_ref": "ba524423fdc3d2c1366627f39e74c31934115480c82e1b59f0758daadbe4263c"
+      },
+      "chain_artifact": {
+        "chain_id":       "chain_b1f4a2d7c9e3",
+        "hops": [
+          {"delegatee": "pioneer-agent-001", "delegation_ref": "fc49ff73ebd629bd3440455115a4ce09e69219f2374f6b0c7a2713a52a579b7e", "delegator": "giskard-self",      "scope": "mycelium:payment"},
+          {"delegatee": "lightning",          "delegation_ref": "7243ad56d9b7d90200b0ad488150b00c6edea21a126cda0067573028f3ef73e9", "delegator": "pioneer-agent-001", "scope": "mycelium:payment"},
+          {"delegatee": "soma-agent",         "delegation_ref": "e471778fe440b4373251a32ef1e04388d0be7e51bcb341deb2cec27f1f146669", "delegator": "lightning",         "scope": "mycelium:payment"}
+        ],
+        "leaf_action_ref": "ba524423fdc3d2c1366627f39e74c31934115480c82e1b59f0758daadbe4263c",
+        "root_delegator":  "giskard-self",
+        "scope":           "mycelium:payment",
+        "version":         "delegation-chain-ref-v1"
+      },
+      "chain_artifact_jcs_payload": "{\"chain_id\":\"chain_b1f4a2d7c9e3\",\"hops\":[{\"delegatee\":\"pioneer-agent-001\",\"delegation_ref\":\"fc49ff73ebd629bd3440455115a4ce09e69219f2374f6b0c7a2713a52a579b7e\",\"delegator\":\"giskard-self\",\"scope\":\"mycelium:payment\"},{\"delegatee\":\"lightning\",\"delegation_ref\":\"7243ad56d9b7d90200b0ad488150b00c6edea21a126cda0067573028f3ef73e9\",\"delegator\":\"pioneer-agent-001\",\"scope\":\"mycelium:payment\"},{\"delegatee\":\"soma-agent\",\"delegation_ref\":\"e471778fe440b4373251a32ef1e04388d0be7e51bcb341deb2cec27f1f146669\",\"delegator\":\"lightning\",\"scope\":\"mycelium:payment\"}],\"leaf_action_ref\":\"ba524423fdc3d2c1366627f39e74c31934115480c82e1b59f0758daadbe4263c\",\"root_delegator\":\"giskard-self\",\"scope\":\"mycelium:payment\",\"version\":\"delegation-chain-ref-v1\"}",
+      "chain_artifact_canonical_bytes_hex": "7b22636861696e5f6964223a22636861696e5f623166346132643763396533222c22686f7073223a5b7b2264656c656761746565223a2270696f6e6565722d6167656e742d303031222c2264656c65676174696f6e5f726566223a2266633439666637336562643632396264333434303435353131356134636530396536393231396632333734663662306337613237313361353261353739623765222c2264656c656761746f72223a226769736b6172642d73656c66222c2273636f7065223a226d7963656c69756d3a7061796d656e74227d2c7b2264656c656761746565223a226c696768746e696e67222c2264656c65676174696f6e5f726566223a2237323433616435366439623764393032303062306164343838313530623030633665646561323161313236636461303036373537333032386633656637336539222c2264656c656761746f72223a2270696f6e6565722d6167656e742d303031222c2273636f7065223a226d7963656c69756d3a7061796d656e74227d2c7b2264656c656761746565223a22736f6d612d6167656e74222c2264656c65676174696f6e5f726566223a2265343731373738666534343062343337333235316133326566316530343338386430626537653531626362333431646562326365633237663166313436363639222c2264656c656761746f72223a226c696768746e696e67222c2273636f7065223a226d7963656c69756d3a7061796d656e74227d5d2c226c6561665f616374696f6e5f726566223a2262613532343432336664633364326331333636363237663339653734633331393334313135343830633832653162353966303735386461616462653432363363222c22726f6f745f64656c656761746f72223a226769736b6172642d73656c66222c2273636f7065223a226d7963656c69756d3a7061796d656e74222c2276657273696f6e223a2264656c65676174696f6e2d636861696e2d7265662d7631227d",
+      "delegation_chain_ref": "453529e323616b344fef58c203ea9bb0caae79954661d3d344fa1b4707457197",
+      "leaf_envelope": {
+        "action_ref":           "ba524423fdc3d2c1366627f39e74c31934115480c82e1b59f0758daadbe4263c",
+        "delegation_chain_ref": "453529e323616b344fef58c203ea9bb0caae79954661d3d344fa1b4707457197",
+        "delegation_ref":       "e471778fe440b4373251a32ef1e04388d0be7e51bcb341deb2cec27f1f146669",
+        "hash_algo":            "sha256",
+        "packet_version":       "1.0",
+        "preimage": {
+          "action_type": "payment.route",
+          "agent_id":    "soma-agent",
+          "scope":       "mycelium:payment",
+          "timestamp":   "2026-05-26T20:00:00.000Z"
+        },
+        "preimage_format": "jcs-rfc8785-v1",
+        "trail_status":    "COMMITTED"
+      },
+      "invariants": {
+        "chain_continuity": "hops[0].delegatee=pioneer-agent-001 == hops[1].delegator; hops[1].delegatee=lightning == hops[2].delegator",
+        "root_anchoring": "root_delegator=giskard-self == hops[0].delegator",
+        "leaf_anchoring": "leaf_action_ref independently derivable from leaf_action.preimage via SHA-256(JCS(preimage))",
+        "chain_ref_not_in_preimage": "delegation_chain_ref does not appear in leaf action_preimage",
+        "backward_traversal": "hop2.parent_delegation_ref == hop1.delegation_ref; hop1.parent_delegation_ref == hop0.delegation_ref"
+      },
+      "notes": {
+        "parent_delegation_ref": "Each hop artifact includes parent_delegation_ref, enabling backward traversal (leaf→root) without the chain artifact. This creates two independent traversal paths: forward via chain_artifact.hops, backward via parent_delegation_ref linkage.",
+        "minimum_chain_length": "This fixture demonstrates 3 hops (minimum per spec is 2). A 2-hop chain would be: root→B→leaf with 2 hop entries.",
+        "scope_consistency": "All hops carry scope=mycelium:payment. Scope narrowing per hop is implementer policy, not enforced by this spec.",
+        "leaf_envelope_dual_ref": "The leaf trail record carries both delegation_ref (direct authorization from lightning) and delegation_chain_ref (full chain from giskard-self). Intermediate records carry only their own delegation_ref."
+      }
+    }
+  ]
+}
