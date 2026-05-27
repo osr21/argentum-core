@@ -152,10 +152,12 @@ def record_trail(
     parent_trail_id: Optional[str] = None,
     root_trail_id: Optional[str] = None,
     negotiation_ref: Optional[str] = None,
+    skip_monthly_limit: bool = False,
 ) -> Optional[str]:
     """Graba un trail. Retorna trail_id o None si cae por rate limit o input invalido.
 
     Precondicion: la firma Ed25519 ya fue verificada por el caller.
+    skip_monthly_limit: True cuando el caller ya consumió un crédito PAYG — omite el check mensual Free.
     parent_trail_id: ID del trail que generó éste (None si es raíz).
     root_trail_id:   ID del trail origen de la cadena (None si es raíz).
     negotiation_ref: SHA-256 hex del artefacto de negociación previo (opcional). No entra en el preimage de action_ref.
@@ -168,9 +170,10 @@ def record_trail(
         used_today = count_trails_today(db_path, agent_id, now=now)
         if used_today >= rate_limit_cap:
             return None
-        used_month = count_trails_this_month(db_path, agent_id, now=now)
-        if used_month >= MONTHLY_LIMIT_FREE:
-            return None
+        if not skip_monthly_limit:
+            used_month = count_trails_this_month(db_path, agent_id, now=now)
+            if used_month >= MONTHLY_LIMIT_FREE:
+                return None
 
     trail_id = str(uuid.uuid4())
     ts = int(now if now is not None else time.time())
@@ -409,6 +412,21 @@ def count_trails_this_month(db_path: str, agent_id: str, now: Optional[int] = No
 
 
 # ── PAYG ACCOUNTS ─────────────────────────────────────────────────────────────
+
+def get_payg_account_by_agent(db_path: str, agent_id: str) -> Optional[dict]:
+    """Lookup PAYG account por agent_id. Retorna la cuenta con más créditos si hay varias."""
+    conn = _connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT api_key, agent_id, tier, credit_trails, created_at, updated_at "
+            "FROM payg_accounts WHERE agent_id=? AND tier='payg' AND credit_trails > 0 "
+            "ORDER BY credit_trails DESC LIMIT 1",
+            (agent_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
 
 def get_payg_account(db_path: str, api_key: str) -> Optional[dict]:
     conn = _connect(db_path)

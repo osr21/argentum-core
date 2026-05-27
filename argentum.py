@@ -1951,6 +1951,12 @@ async def nexus_trail(request: Request):
                 status_code=422,
             )
 
+    # Consume PAYG credit before hitting Free monthly limit
+    payg_account = mycelium_trails.get_payg_account_by_agent(TRAILS_DB, agent_id)
+    payg_consumed = False
+    if payg_account:
+        payg_consumed = mycelium_trails.consume_payg_credit(TRAILS_DB, payg_account["api_key"])
+
     trail_id = mycelium_trails.record_trail(
         TRAILS_DB,
         agent_id=agent_id,
@@ -1962,9 +1968,13 @@ async def nexus_trail(request: Request):
         scope=scope or None,
         delegation_ref=payment_hash or None,  # payment_hash externo NEXUS
         negotiation_ref=negotiation_ref,
+        skip_monthly_limit=payg_consumed,
     )
 
     if trail_id is None:
+        if payg_consumed:
+            # Refund the credit — record_trail failed for another reason (daily cap, invalid input)
+            mycelium_trails.topup_payg(TRAILS_DB, payg_account["api_key"], 1)
         used_month = mycelium_trails.count_trails_this_month(TRAILS_DB, agent_id)
         if used_month >= mycelium_trails.MONTHLY_LIMIT_FREE:
             return JSONResponse({
