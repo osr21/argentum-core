@@ -45,9 +45,9 @@ Each entry includes a public evidence link. Entries without verifiable public ev
 ## AURA — Reputation Observation Layer
 
 **Contact:** [luisllaver](https://github.com/luisllaver)
-**Use case:** action_ref as idempotency key for reputation observations. action_type → dimension mapping live on AURA's observe path.
-**Evidence:** Independently reproduced action-ref.md v1.0 fixture verbatim — NEXUS oracle signal digest `fdd7f810…43d89f5a` confirmed ([x402#2332](https://github.com/x402-foundation/x402/issues/2332)). Plain JCS (RFC 8785) + SHA-256, no substrate-specific dependency.
-**Status:** Conformance confirmed 2026-05-23. Live on observe path.
+**Use case:** `action_ref` carried as evidence in reputation records. `GET /v1/reputation/{did}` returns `actionRefs` list plus `evidence [{ref, dim, at}]`. A downstream auditor can recompute `SHA-256(JCS(receipt preimage))` and match it independently — no routing through AURA required.
+**Evidence:** Independently reproduced action-ref.md v1.0 fixture verbatim ([x402#2332](https://github.com/x402-foundation/x402/issues/2332)). Shipped portability property 2026-05-27.
+**Status:** Production. action_ref in reputation record as verifiable evidence.
 
 ---
 
