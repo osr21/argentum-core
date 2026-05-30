@@ -304,6 +304,16 @@ Full integration guide + LlamaIndex `GuardedMemory` class: [docs/guides/integrat
 
 Conformance fixtures: [`examples/conformance/memory-write-v1.fixture.json`](examples/conformance/memory-write-v1.fixture.json) — 3 byte-exact vectors (baseline write, LlamaIndex conversation history, delegated write with authorization chain).
 
+## Pricing
+
+**PAYG — $0.003 USDC per anchored trail.** No subscription, no contract. Pay per trail anchored on-chain.
+
+- Free: up to 100 trails/month — full functionality, on-chain anchoring included
+- PAYG: $0.003 USDC per trail above the free tier — paid on Base mainnet
+- Enterprise: fixed monthly rate, SLA, dedicated support — [contact us](mailto:playplay2736@gmail.com)
+
+Payment is on-chain (Base or Arbitrum). The trail anchor and the payment record are both independently verifiable.
+
 ## Ecosystem integrations
 
 - **Giskard Memory** (`localhost:8005`) — verified actions stored as episodic traces
