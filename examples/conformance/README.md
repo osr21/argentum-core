@@ -8,6 +8,7 @@ This directory contains conformance fixtures for the action-ref-v1 spec and Myce
 4. **negative fixtures** — cases that MUST fail validation: missing required field, tampered hash.
 5. **CTEF vectors** — cross-extension matrix fixtures for `urn:mycelium:trail` (CTEF v0.3.3 row #2).
 6. **memory provenance** — `action_type: "memory_write"` + `scope: <memory_key>` pattern for content-addressed receipts per write. Covers OWASP ASI06 gap class #2. See commit [de7dd7e](https://github.com/giskard09/argentum-core/commit/de7dd7e0c09365f465d2c14c62817b1d19e4adef) and `docs/spec/action-ref.md` (memory provenance section).
+7. **near-miss vectors** — failure-mode boundary fixtures (`AMBIGUOUS_ISSUER_BINDING`, `RESCOPED_REPLAY`, `SEMANTIC_DRIFT`). Source: [agentgraph-co/agentgraph](https://github.com/agentgraph-co/agentgraph) @ `a07cdf8`.
 
 ---
 
@@ -193,3 +194,20 @@ No authentication required.
 - CTEF v0.3.3 working doc: `agentgraph-co/agentgraph/docs/standards/v0.3.3-working-doc.md` (branch: `v0.3.3-cross-extension-matrix`)
 - Full TrailRecord schema: [`docs/MYCELIUM_TRAILS_REFERENCE.md`](../../docs/MYCELIUM_TRAILS_REFERENCE.md)
 - action_ref derivation spec: [`docs/spec/action-ref.md`](../../docs/spec/action-ref.md)
+
+---
+
+## near-miss-v1 — [`near-miss-v1/near-miss-v1.fixture.json`](./near-miss-v1/near-miss-v1.fixture.json)
+
+Near-miss conformance vectors for the `action_ref` verifier boundary. Each vector is a case that a conformant verifier **MUST** reject fail-closed.
+
+**Source:** [agentgraph-co/agentgraph](https://github.com/agentgraph-co/agentgraph) @ commit `a07cdf8`  
+**Attribution:** per [A2A discussion #1734](https://github.com/a2aproject/A2A/discussions/1734#discussioncomment-17124409)
+
+| Vector | Error code | What it tests |
+|--------|-----------|---------------|
+| `ambiguous_issuer_binding` | `AMBIGUOUS_ISSUER_BINDING` | Two issuers, same `action_ref`, disjoint verdicts — injectivity must fail |
+| `rescoped_replay` | `RESCOPED_REPLAY` | `read` scope attestation presented as `write` — recomputed `action_ref` diverges |
+| `semantic_drift` | `SEMANTIC_DRIFT` | `behavioral_eval` at issuance vs `behavioral` at verification — vocabulary drift from A2A #1786 |
+
+All three `canonical_sha256` values are byte-match verified (JCS + SHA-256). See [`near-miss-v1/README.md`](./near-miss-v1/README.md) for full spec.
