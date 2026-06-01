@@ -194,6 +194,7 @@ No authentication required.
 - CTEF v0.3.3 working doc: `agentgraph-co/agentgraph/docs/standards/v0.3.3-working-doc.md` (branch: `v0.3.3-cross-extension-matrix`)
 - Full TrailRecord schema: [`docs/MYCELIUM_TRAILS_REFERENCE.md`](../../docs/MYCELIUM_TRAILS_REFERENCE.md)
 - action_ref derivation spec: [`docs/spec/action-ref.md`](../../docs/spec/action-ref.md)
+- CTEF canonical anchor: [`cte-test-vectors.json`](https://agentgraph.co/.well-known/cte-test-vectors.json) (agentgraph-co/agentgraph, v0.3.1)
 
 ---
 
