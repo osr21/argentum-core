@@ -12,7 +12,6 @@ from web3 import Web3
 
 ARBITRUM_RPC     = os.getenv("ARBITRUM_RPC", "https://arb1.arbitrum.io/rpc")
 CONTRACT_ADDRESS = os.getenv("GISKARD_CONTRACT_ADDRESS", "0xD467CD1e34515d58F98f8Eb66C0892643ec86AD3")
-OWNER_PRIVATE_KEY = os.getenv("OWNER_PRIVATE_KEY", "")
 USE_SIGNER       = os.getenv("USE_SIGNER", "0") == "1"
 SIGNER_WALLET_ID = os.getenv("SIGNER_WALLET_ID", "owner")
 SIGNER_CHAIN_ID  = int(os.getenv("SIGNER_CHAIN_ID", "42161"))
@@ -46,6 +45,7 @@ def _setup():
         address=Web3.to_checksum_address(CONTRACT_ADDRESS),
         abi=ABI,
     )
+    key = os.getenv("OWNER_PRIVATE_KEY", "")
     if USE_SIGNER:
         import sys
         signer_path = "/home/dell7568/giskard-signer"
@@ -54,8 +54,8 @@ def _setup():
         from signer.client import SignerClient
         _signer_client = SignerClient.from_env()
         _owner_addr = _signer_client.get_address(SIGNER_WALLET_ID)
-    elif OWNER_PRIVATE_KEY:
-        _owner = _w3.eth.account.from_key(OWNER_PRIVATE_KEY)
+    elif key:
+        _owner = _w3.eth.account.from_key(key)
         _owner_addr = _owner.address
 
 
@@ -86,7 +86,7 @@ def anchor_action_ref(action_ref_hex: str) -> str | None:
                 raw = "0x" + raw
             tx_hash = _w3.eth.send_raw_transaction(bytes.fromhex(raw[2:]))
         else:
-            signed = _w3.eth.account.sign_transaction(tx, OWNER_PRIVATE_KEY)
+            signed = _w3.eth.account.sign_transaction(tx, os.getenv("OWNER_PRIVATE_KEY", ""))
             tx_hash = _w3.eth.send_raw_transaction(signed.raw_transaction)
         return tx_hash.hex() if isinstance(tx_hash, bytes) else str(tx_hash)
     except Exception as exc:
