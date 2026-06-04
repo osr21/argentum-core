@@ -24,6 +24,12 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import agent_signing
+import threading as _threading
+try:
+    import arb_pay as _arb_pay
+    _ARB_PAY_OK = True
+except ImportError:
+    _ARB_PAY_OK = False
 try:
     import smtp_notify as _smtp
     _SMTP_OK = True
@@ -2390,6 +2396,14 @@ async def nexus_trail(request: Request):
         _conn.execute("UPDATE trails SET action_ref = ? WHERE trail_id = ?", (action_ref, trail_id))
         _conn.close()
 
+        # Anchor on-chain en background — no bloquea la respuesta al cliente
+        if _ARB_PAY_OK:
+            def _do_anchor(tid: str, aref: str):
+                tx = _arb_pay.anchor_action_ref(aref)
+                if tx:
+                    mycelium_trails.set_trail_tx_hash(TRAILS_DB, tid, tx)
+            _threading.Thread(target=_do_anchor, args=(trail_id, action_ref), daemon=True).start()
+
     if trail_id is None:
         if payg_consumed:
             # Refund the credit — record_trail failed for another reason (daily cap, invalid input)
@@ -2416,6 +2430,7 @@ async def nexus_trail(request: Request):
         "negotiation_ref": negotiation_ref,
         "payment_hash": payment_hash or None,
         "trail_status": "committed",
+        "anchor": "pending" if _ARB_PAY_OK else "disabled",
     }, status_code=201)
 
 

@@ -98,6 +98,7 @@ _DDL_MIGRATIONS = [
     "ALTER TABLE trails ADD COLUMN root_trail_id TEXT",
     "ALTER TABLE trails ADD COLUMN negotiation_ref TEXT",
     "ALTER TABLE trails ADD COLUMN action_ref TEXT",
+    "ALTER TABLE trails ADD COLUMN tx_hash TEXT",
 ]
 
 
@@ -233,7 +234,20 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
         "root_trail_id": row["root_trail_id"] if "root_trail_id" in keys else None,
         "negotiation_ref": row["negotiation_ref"] if "negotiation_ref" in keys else None,
         "action_ref": row["action_ref"] if "action_ref" in keys else None,
+        "tx_hash": row["tx_hash"] if "tx_hash" in keys else None,
     }
+
+
+def set_trail_tx_hash(db_path: str, trail_id: str, tx_hash: str) -> None:
+    """Actualiza tx_hash de un trail después del anchor on-chain."""
+    conn = _connect(db_path)
+    try:
+        conn.execute(
+            "UPDATE trails SET tx_hash = ? WHERE trail_id = ?",
+            (tx_hash, trail_id),
+        )
+    finally:
+        conn.close()
 
 
 def list_trails_by_agent(
@@ -268,7 +282,7 @@ def get_trail_by_id(db_path: str, trail_id: str) -> Optional[dict]:
             """
             SELECT trail_id, agent_id, service, operation, timestamp,
                    karma_at_time, success, signature_ref, scope, delegation_ref,
-                   parent_trail_id, root_trail_id, negotiation_ref, action_ref
+                   parent_trail_id, root_trail_id, negotiation_ref, action_ref, tx_hash
             FROM trails WHERE trail_id=?
             """,
             (trail_id,),
