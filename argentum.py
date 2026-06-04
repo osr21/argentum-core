@@ -1875,7 +1875,11 @@ def get_trail(trail_id: str):
     row = conn.execute("SELECT * FROM trails WHERE id = ?", (trail_id,)).fetchone()
     if not row:
         conn.close()
-        raise HTTPException(404, "trail not found")
+        # Fallback: buscar en Mycelium trails (trails.db) — trails registrados via /nexus/trail
+        mrow = mycelium_trails.get_trail_by_id(TRAILS_DB, trail_id)
+        if mrow is None:
+            raise HTTPException(404, "trail not found")
+        return {"source": "mycelium", **mrow}
     d = dict(row)
     d["steps"] = _json.loads(d["steps"])
     if d.get("output_schema"):
