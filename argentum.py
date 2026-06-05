@@ -1940,6 +1940,29 @@ setTimeout(() => window.location.reload(), 30000);
     return HTMLResponse(content=html)
 
 
+@app.get("/mycelium/stats/{agent_id}")
+def mycelium_stats(agent_id: str):
+    """Conteo de trails Mycelium por agent_id, desglosado por origin.
+    Excluye onboarding_incomplete. Fuente primaria para campos derivados en catálogos externos."""
+    conn = sqlite3.connect(TRAILS_DB)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT origin, COUNT(*) as cnt FROM trails "
+        "WHERE agent_id = ? AND origin != 'onboarding_incomplete' "
+        "GROUP BY origin",
+        (agent_id,),
+    ).fetchall()
+    conn.close()
+    by_origin = {r["origin"]: r["cnt"] for r in rows}
+    client_trails = by_origin.get("nexus", 0) + by_origin.get("client", 0)
+    return {
+        "agent_id": agent_id,
+        "trails_by_origin": by_origin,
+        "client_trails": client_trails,
+        "total_excluding_incomplete": sum(by_origin.values()),
+    }
+
+
 @app.get("/trails/agents/{agent_id}")
 async def proxy_trails_by_agent(agent_id: str, limit: int = 50):
     """Proxy a Giskard Oasis /trails/{agent_id} — historial de trails por agente."""
