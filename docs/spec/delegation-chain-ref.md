@@ -2,7 +2,7 @@
 
 **Stable tag:** `delegation-chain-ref-v1.0`  
 **Status:** stable  
-**Canonical fixture:** [`examples/conformance/delegation-chain-ref-v1.fixture.json`](../../examples/conformance/delegation-chain-ref-v1.fixture.json)
+**Canonical fixture:** [`docs/spec/fixtures/delegation-chain-ref-v1.fixture.json`](./fixtures/delegation-chain-ref-v1.fixture.json)
 
 ---
 
