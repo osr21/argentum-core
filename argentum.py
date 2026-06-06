@@ -57,6 +57,14 @@ PHOENIXD_URL      = "http://127.0.0.1:9740"
 PHOENIXD_PASSWORD = os.environ.get("PHOENIXD_PASSWORD", "")
 WEBHOOK_SECRET    = os.environ.get("WEBHOOK_SECRET", "")
 
+# Conformance tier weights — karma delta per verified trail by source
+CONFORMANCE_TIER: dict[str, float] = {
+    "nexus":   1.0,   # giskard-payments, our contract — anchor on-chain required
+    "aps":     0.7,   # AEOESS / APS — conformance-verified
+    "nobulex": 0.7,   # Gogani/Nobulex — conformance-verified
+}
+KARMA_DEFAULT_WEIGHT: float = 0.2   # valid action_ref, unverified implementation
+
 WEIGHT_THRESHOLD          = 2.0  # total weighted attestations needed to verify
 KARMA_WEIGHT_BASE         = 50   # karma units for weight = 1.0
 KARMA_WEIGHT_MIN          = 0.5  # floor — new users with marks still count
@@ -134,6 +142,13 @@ def init_db():
     # v0.5 migration — add system_version to actions (GAP-A: audit trail versioning)
     try:
         conn.execute("ALTER TABLE actions ADD COLUMN system_version TEXT")
+        conn.commit()
+    except Exception:
+        pass  # column already exists
+    # v0.6 migration — total_karma INTEGER → REAL for fractional conformance weights
+    try:
+        conn.execute("ALTER TABLE wisdom ADD COLUMN total_karma_real REAL DEFAULT 0.0")
+        conn.execute("UPDATE wisdom SET total_karma_real = CAST(total_karma AS REAL) WHERE total_karma_real = 0.0")
         conn.commit()
     except Exception:
         pass  # column already exists
@@ -438,23 +453,25 @@ async def mint_mark(entity_id: str, entity_name: str, action_id: str, karma: int
     except Exception:
         pass  # marks are best-effort
 
-def upsert_wisdom(conn, entity_id, entity_name, entity_type, karma_delta=0, action=False, attestation=False, last_action=None):
+def upsert_wisdom(conn, entity_id, entity_name, entity_type, karma_delta=0.0, action=False, attestation=False, last_action=None):
+    delta = float(karma_delta)
     existing = conn.execute("SELECT * FROM wisdom WHERE entity_id = ?", (entity_id,)).fetchone()
     if existing:
         conn.execute("""
         UPDATE wisdom SET
-            total_karma        = total_karma + ?,
+            total_karma        = CAST(COALESCE(total_karma_real, total_karma) + ? AS INTEGER),
+            total_karma_real   = COALESCE(total_karma_real, CAST(total_karma AS REAL)) + ?,
             verified_actions   = verified_actions + ?,
             attestations_given = attestations_given + ?,
             last_action        = COALESCE(?, last_action),
             entity_name        = ?
         WHERE entity_id = ?
-        """, (karma_delta, 1 if action else 0, 1 if attestation else 0, last_action, entity_name, entity_id))
+        """, (delta, delta, 1 if action else 0, 1 if attestation else 0, last_action, entity_name, entity_id))
     else:
         conn.execute("""
-        INSERT INTO wisdom (entity_id, entity_name, entity_type, total_karma, verified_actions, attestations_given, last_action)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (entity_id, entity_name, entity_type, karma_delta, 1 if action else 0, 1 if attestation else 0, last_action))
+        INSERT INTO wisdom (entity_id, entity_name, entity_type, total_karma, total_karma_real, verified_actions, attestations_given, last_action)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (entity_id, entity_name, entity_type, int(delta), delta, 1 if action else 0, 1 if attestation else 0, last_action))
 
 # ── ROUTES ──────────────────────────────────────────────────────────────────
 
@@ -905,7 +922,7 @@ def get_karma(agent_id: str):
         ).fetchone()[0]
     conn.close()
 
-    karma = dict(w)["total_karma"] if w else 0
+    karma = round(dict(w).get("total_karma_real") or dict(w)["total_karma"], 2) if w else 0
     verified_at = datetime.now(timezone.utc).isoformat()
 
     badge_payload = {
@@ -2450,6 +2467,58 @@ def get_leaderboard(top: int = 10) -> str:
     for i, r in enumerate(rows, 1):
         lines.append(f"  {i}. {r['entity_name']} — {r['total_karma']} karma ({r['verified_actions']} actions, {r['attestations_given']} attestations)")
     return "\n".join(lines)
+
+
+@app.post("/external/trail")
+async def external_trail(request: Request):
+    """Registra un trail de implementación externa y acumula karma según conformance tier.
+
+    Tier 1.0 (nexus): usa /nexus/trail — requiere anchor on-chain.
+    Tier 0.7 (aps, nobulex): action_ref válido + source en CONFORMANCE_TIER.
+    Tier 0.2 (default): action_ref válido, source desconocido.
+
+    No ancla on-chain — el anchor es diferencial del tier nexus.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid JSON"}, status_code=400)
+
+    agent_id  = (body.get("agent_id") or "").strip()
+    action_ref = (body.get("action_ref") or "").strip()
+    source    = (body.get("source") or "").strip().lower()
+    api_key   = (body.get("api_key") or "").strip()
+
+    if not (agent_id and action_ref and api_key):
+        return JSONResponse({"error": "agent_id, action_ref, api_key required"}, status_code=400)
+
+    import re
+    if not re.fullmatch(r"[0-9a-f]{64}", action_ref):
+        return JSONResponse({"error": "action_ref must be 64 hex chars (SHA-256)"}, status_code=422)
+
+    account = mycelium_trails.get_payg_account(TRAILS_DB, api_key)
+    if not account:
+        return JSONResponse({"error": "api_key not found"}, status_code=401)
+
+    weight = CONFORMANCE_TIER.get(source, KARMA_DEFAULT_WEIGHT)
+
+    conn = get_db()
+    upsert_wisdom(conn, agent_id, agent_id, "agent",
+                  karma_delta=weight, action=True,
+                  last_action=datetime.now(timezone.utc).isoformat())
+    conn.commit()
+    w = conn.execute("SELECT total_karma_real FROM wisdom WHERE entity_id = ?", (agent_id,)).fetchone()
+    conn.close()
+
+    return JSONResponse({
+        "ok": True,
+        "agent_id": agent_id,
+        "action_ref": action_ref,
+        "source": source or "unknown",
+        "karma_delta": weight,
+        "karma_total": w["total_karma_real"] if w else weight,
+        "tier": "conformance_verified" if source in CONFORMANCE_TIER else "default",
+    }, status_code=201)
 
 
 @app.post("/nexus/trail")
