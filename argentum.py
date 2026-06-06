@@ -2474,23 +2474,23 @@ async def external_trail(request: Request):
     """Registra un trail de implementación externa y acumula karma según conformance tier.
 
     Tier 1.0 (nexus): usa /nexus/trail — requiere anchor on-chain.
-    Tier 0.7 (aps, nobulex): action_ref válido + source en CONFORMANCE_TIER.
+    Tier 0.7 (aps, nobulex): conformance_source registrado en payg_accounts.
     Tier 0.2 (default): action_ref válido, source desconocido.
 
     No ancla on-chain — el anchor es diferencial del tier nexus.
+    Seguridad: api_key vincula agent_id (no autodeclarado), conformance_source
+    viene del registro de la cuenta (no del cuerpo), action_ref es nonce único.
     """
     try:
         body = await request.json()
     except Exception:
         return JSONResponse({"error": "invalid JSON"}, status_code=400)
 
-    agent_id  = (body.get("agent_id") or "").strip()
     action_ref = (body.get("action_ref") or "").strip()
-    source    = (body.get("source") or "").strip().lower()
-    api_key   = (body.get("api_key") or "").strip()
+    api_key    = (body.get("api_key") or "").strip()
 
-    if not (agent_id and action_ref and api_key):
-        return JSONResponse({"error": "agent_id, action_ref, api_key required"}, status_code=400)
+    if not (action_ref and api_key):
+        return JSONResponse({"error": "action_ref, api_key required"}, status_code=400)
 
     import re
     if not re.fullmatch(r"[0-9a-f]{64}", action_ref):
@@ -2500,7 +2500,18 @@ async def external_trail(request: Request):
     if not account:
         return JSONResponse({"error": "api_key not found"}, status_code=401)
 
-    weight = CONFORMANCE_TIER.get(source, KARMA_DEFAULT_WEIGHT)
+    # agent_id viene del registro de la cuenta, no del cuerpo
+    agent_id = account["agent_id"]
+
+    # replay protection: cada action_ref es nonce único
+    if mycelium_trails.has_external_nonce(TRAILS_DB, action_ref):
+        return JSONResponse({"error": "action_ref already processed"}, status_code=409)
+
+    # tier viene del registro de la cuenta, no del cuerpo
+    conformance_source = (account.get("conformance_source") or "").strip().lower()
+    weight = CONFORMANCE_TIER.get(conformance_source, KARMA_DEFAULT_WEIGHT)
+
+    mycelium_trails.record_external_nonce(TRAILS_DB, action_ref, agent_id)
 
     conn = get_db()
     upsert_wisdom(conn, agent_id, agent_id, "agent",
@@ -2514,10 +2525,10 @@ async def external_trail(request: Request):
         "ok": True,
         "agent_id": agent_id,
         "action_ref": action_ref,
-        "source": source or "unknown",
+        "source": conformance_source or "unknown",
         "karma_delta": weight,
         "karma_total": w["total_karma_real"] if w else weight,
-        "tier": "conformance_verified" if source in CONFORMANCE_TIER else "default",
+        "tier": "conformance_verified" if conformance_source in CONFORMANCE_TIER else "default",
     }, status_code=201)
 
 

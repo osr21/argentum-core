@@ -91,6 +91,14 @@ _DDL_USDC_INTENTS = """
     )
 """
 
+_DDL_EXTERNAL_NONCES = """
+    CREATE TABLE IF NOT EXISTS external_trail_nonces (
+        action_ref  TEXT PRIMARY KEY,
+        agent_id    TEXT NOT NULL,
+        created_at  INTEGER NOT NULL
+    )
+"""
+
 _DDL_MIGRATIONS = [
     "ALTER TABLE trails ADD COLUMN scope TEXT",
     "ALTER TABLE trails ADD COLUMN delegation_ref TEXT",
@@ -101,6 +109,7 @@ _DDL_MIGRATIONS = [
     "ALTER TABLE trails ADD COLUMN tx_hash TEXT",
     "ALTER TABLE trails ADD COLUMN origin TEXT",
     "ALTER TABLE trails ADD COLUMN notes TEXT",
+    "ALTER TABLE payg_accounts ADD COLUMN conformance_source TEXT",
 ]
 
 
@@ -112,6 +121,7 @@ def init_db(db_path: str) -> None:
             conn.execute(stmt)
         conn.execute(_DDL_PAYG)
         conn.execute(_DDL_USDC_INTENTS)
+        conn.execute(_DDL_EXTERNAL_NONCES)
         for stmt in _DDL_MIGRATIONS:
             try:
                 conn.execute(stmt)
@@ -597,5 +607,29 @@ def fulfill_usdc_intent(db_path: str, intent_id: str, tx_hash: str) -> Optional[
             (intent["api_key"],),
         ).fetchone()
         return {"intent": intent, "account": dict(account) if account else None, "tx_hash": tx_hash}
+    finally:
+        conn.close()
+
+
+def has_external_nonce(db_path: str, action_ref: str) -> bool:
+    """Retorna True si action_ref ya fue procesado (replay protection)."""
+    conn = _connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM external_trail_nonces WHERE action_ref=?", (action_ref,)
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def record_external_nonce(db_path: str, action_ref: str, agent_id: str) -> None:
+    """Registra action_ref como nonce consumido. Llama solo si has_external_nonce es False."""
+    conn = _connect(db_path)
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO external_trail_nonces (action_ref, agent_id, created_at) VALUES (?, ?, ?)",
+            (action_ref, agent_id, int(time.time())),
+        )
     finally:
         conn.close()
