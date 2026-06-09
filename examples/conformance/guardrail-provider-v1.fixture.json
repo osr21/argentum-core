@@ -1,22 +1,22 @@
 {
   "fixture_id": "guardrail-provider-v1",
-  "version": "v1",
+  "version": "v2",
   "spec": "docs/spec/action-ref.md",
   "spec_stable_ref": "https://github.com/giskard09/argentum-core/blob/action-ref-v1.0/docs/spec/action-ref.md",
   "hash_algo": "sha256",
   "preimage_format": "jcs-rfc8785-v1",
   "generated_at": "2026-06-09",
-  "purpose": "Conformance fixture for GuardrailProvider / revise_args pattern. Demonstrates that action_ref is the correlation key across the three-record trail (pre-execution, decision, receipt) and is derived from the intent tuple — not from the args. original_args_digest and effective_args_digest are separate fields in the pre-execution record, enabling a verifier to reconstruct whether and how args were revised without trusting the agent runtime.",
-  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\naction_ref = hashlib.sha256(jcs(preimage).encode()).hexdigest()\nargs_digest = hashlib.sha256(jcs(args).encode()).hexdigest()",
+  "purpose": "Conformance fixture for GuardrailProvider / revise_args pattern. Demonstrates that action_ref is the correlation key across the three-record trail (pre-execution, decision, receipt) and is derived from the intent tuple — not from the args. original_args_digest and effective_args_digest are separate fields in the pre-execution record, enabling a verifier to reconstruct whether and how args were revised without trusting the agent runtime. authorization_ref binds both records to the specific authorization decision — a verifier can confirm not just same call and same dispatched payload, but same approval.",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\naction_ref = hashlib.sha256(jcs(preimage).encode()).hexdigest()\nargs_digest = hashlib.sha256(jcs(args).encode()).hexdigest()\nauthorization_ref = hashlib.sha256(jcs(auth_preimage).encode()).hexdigest()",
   "scenario": {
-    "description": "An agent requests a database query tool call. The GuardrailProvider intercepts, inspects the original args (limit=1000), revises them (limit=100), and emits a pre-execution record before allowing the call to proceed. The receipt is emitted post-execution. A verifier correlates pre-execution record and receipt via action_ref — recomputable from the intent tuple alone.",
+    "description": "An agent requests a database query tool call. The GuardrailProvider intercepts, inspects the original args (limit=1000), revises them (limit=100), and emits a pre-execution record before allowing the call to proceed. The receipt is emitted post-execution. A verifier correlates pre-execution record and receipt via action_ref — recomputable from the intent tuple alone — and confirms both records reference the same authorization decision via authorization_ref.",
     "actors": {
       "agent_id": "guardrail-agent-001",
       "guardrail": "GuardrailProvider (revise_args path)"
     }
   },
   "positive_path": {
-    "description": "Full arc: intent tuple → action_ref → pre-execution record (with revision) → receipt. action_ref is stable across all three records.",
+    "description": "Full arc: intent tuple → action_ref → authorization decision → pre-execution record (with revision) → receipt. action_ref and authorization_ref are stable across all records.",
     "step_1_action_ref": {
       "label": "Derive action_ref from intent tuple (correlation key)",
       "preimage": {
@@ -49,29 +49,44 @@
       "effective_args_digest": "a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477",
       "invariant": "original_args_digest != effective_args_digest when guardrail revised the args"
     },
+    "step_2b_authorization_ref": {
+      "label": "Derive authorization_ref from the authorization decision record",
+      "description": "authorization_ref identifies the specific authorization decision — the policy snapshot and scope that were in force at the moment of approval. Recomputable by any verifier holding the decision record fields; no operator trust required.",
+      "preimage": {
+        "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorized_scope": "autogen:guardrail",
+        "decision_ts": 1749513600000,
+        "policy_id": "guardrail-policy-v1"
+      },
+      "jcs_payload": "{\"action_ref\":\"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f\",\"authorized_scope\":\"autogen:guardrail\",\"decision_ts\":1749513600000,\"policy_id\":\"guardrail-policy-v1\"}",
+      "authorization_ref": "b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327",
+      "invariant": "action_ref is embedded in the authorization_ref preimage — a verifier can confirm the decision was for this specific action instance"
+    },
     "step_3_pre_execution_record": {
       "label": "Pre-execution record — emitted before tool call executes",
       "record": {
         "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorization_ref": "b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327",
         "effective_args_digest": "a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477",
         "original_args_digest": "df57a577bbc3d0849aa7ce8df577d7310d57dbb06b099c14343efa343af70ee9",
         "record_type": "pre_execution",
         "revised": true
       },
-      "record_jcs": "{\"action_ref\":\"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f\",\"effective_args_digest\":\"a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477\",\"original_args_digest\":\"df57a577bbc3d0849aa7ce8df577d7310d57dbb06b099c14343efa343af70ee9\",\"record_type\":\"pre_execution\",\"revised\":true}",
-      "record_digest": "f46080c361d29c824ce87522e01adb86b7e5e11e508cb5e9771211446eaf601c"
+      "record_jcs": "{\"action_ref\":\"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f\",\"authorization_ref\":\"b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327\",\"effective_args_digest\":\"a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477\",\"original_args_digest\":\"df57a577bbc3d0849aa7ce8df577d7310d57dbb06b099c14343efa343af70ee9\",\"record_type\":\"pre_execution\",\"revised\":true}",
+      "record_digest": "ca679e50581cb72128d9b022617ac5abb131e9534e20ffd3f59c06823d9d0cc4"
     },
     "step_4_receipt": {
-      "label": "Receipt — emitted post-execution, same action_ref",
+      "label": "Receipt — emitted post-execution, same action_ref and authorization_ref",
       "record": {
         "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorization_ref": "b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327",
         "outcome": "success",
         "record_type": "receipt",
         "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
       },
-      "record_jcs": "{\"action_ref\":\"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f\",\"outcome\":\"success\",\"record_type\":\"receipt\",\"result_digest\":\"0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882\"}",
-      "record_digest": "10256422c7d3629289fbd3895848ffa54422f088fce40b7d3f78c7f96e472f07",
-      "verifier_check": "action_ref in receipt == action_ref in pre_execution_record — correlation holds without operator involvement"
+      "record_jcs": "{\"action_ref\":\"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f\",\"authorization_ref\":\"b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327\",\"outcome\":\"success\",\"record_type\":\"receipt\",\"result_digest\":\"0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882\"}",
+      "record_digest": "307864cfe9d3d8fe5af3b9b3dc681397678e583e5dda34700b7ef95cc7ebc000",
+      "verifier_check": "action_ref and authorization_ref in receipt == action_ref and authorization_ref in pre_execution_record — same call instance, same dispatched payload, same authorization decision"
     }
   },
   "negative_cases": [
@@ -91,6 +106,7 @@
       "description": "A non-conformant implementation sets original_args_digest = effective_args_digest, hiding the fact that the guardrail revised the args. A verifier checking the pre-execution record sees revised=true but cannot verify the extent of the revision — the args delta is unauditable.",
       "wrong_pre_execution_record": {
         "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorization_ref": "b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327",
         "effective_args_digest": "a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477",
         "original_args_digest": "a208fd12e4ea22541f71ae426532adaa445058ce36b30c3b580b1371cd0ee477",
         "record_type": "pre_execution",
@@ -113,6 +129,28 @@
       "wrong_receipt_action_ref": "82f185aa17669ab79a444a0040f9a3e44e3219e24a36e786ca6506b6e40c3ced",
       "invariant_violated": "pre_execution.action_ref != receipt.action_ref — three-record arc is broken",
       "verifier_outcome": "REJECT — verifier cannot correlate pre-execution record to receipt; records belong to different action instances"
+    },
+    {
+      "id": "NEG-4",
+      "label": "Receipt carries a different authorization_ref — execution under a different approval",
+      "description": "effective_args_digest is unchanged (same dispatched payload), but the receipt carries an authorization_ref derived from a different decision window (decision_ts 60 seconds earlier, different policy snapshot). A verifier can prove 'same call and same dispatched payload' but cannot confirm 'same authorization decision' — the execution may have proceeded under a stale or different approval.",
+      "pre_execution_authorization_ref": "b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327",
+      "wrong_receipt_auth_preimage": {
+        "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorized_scope": "autogen:guardrail",
+        "decision_ts": 1749513540000,
+        "policy_id": "guardrail-policy-v1"
+      },
+      "wrong_receipt_authorization_ref": "204e7652d78051f37d53de2a95cd3a7f94e5e1adff7b84d4549c45d251db9495",
+      "wrong_receipt_record": {
+        "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "authorization_ref": "204e7652d78051f37d53de2a95cd3a7f94e5e1adff7b84d4549c45d251db9495",
+        "outcome": "success",
+        "record_type": "receipt",
+        "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
+      },
+      "invariant_violated": "pre_execution.authorization_ref != receipt.authorization_ref — execution was tied to a different authorization decision",
+      "verifier_outcome": "REJECT — verifier can confirm same call and same dispatched payload, but cannot confirm same authorization decision; the approval binding is broken"
     }
   ]
 }
