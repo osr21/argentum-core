@@ -223,6 +223,95 @@ document the precision loss in the receipt.
 
 ---
 
+## authorization_ref — Decision record identifier in the three-record shape
+
+The three-record trail (Commitment → Decision → Receipt) uses `action_ref` as the
+correlation key across all three records. `authorization_ref` is the identifier for the
+**Decision record** — the specific authorization event that approved execution.
+
+### Derivation
+
+```
+authorization_ref = SHA-256(JCS({
+  "action_ref": "<correlation key>",
+  "authorized_scope": "<scope string>",
+  "decision_ts": <epoch-ms integer>,
+  "policy_id": "<policy or ruleset identifier>"
+}))
+```
+
+Keys in JCS lexicographic order: `action_ref`, `authorized_scope`, `decision_ts`, `policy_id`.
+
+`decision_ts` is an epoch-millisecond integer (not an RFC 3339 string). Sub-second
+precision matters here: authorization systems may issue multiple decisions per second under
+high concurrency, and millisecond timestamps are the standard granularity for policy
+evaluation events.
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `action_ref` | string | SHA-256 hex of the action intent tuple — the correlation key for the full trail. Embeds the specific action instance inside the decision preimage. |
+| `authorized_scope` | string | Scope string at the moment of authorization. Matches the `scope` field in the `action_ref` preimage in the common case; may differ if the guardrail narrowed the scope during authorization. |
+| `decision_ts` | integer | Epoch-millisecond timestamp of the authorization decision. |
+| `policy_id` | string | Identifier of the policy or ruleset in force at the moment of authorization. |
+
+### Invariants
+
+**1. `action_ref` is embedded in the preimage.**
+The authorization decision is bound to the specific action instance. A verifier can confirm
+that the decision was not reused across action instances — if `action_ref` differs, the
+`authorization_ref` derived from the same policy snapshot will also differ.
+
+**2. Recomputable without operator cooperation.**
+Any verifier holding the four decision record fields (`action_ref`, `authorized_scope`,
+`decision_ts`, `policy_id`) can recompute `authorization_ref` independently using
+SHA-256(JCS(…)). No call to the operator's systems is required.
+
+**3. Must appear in both the pre-execution record and the receipt.**
+A verifier comparing both records can confirm that execution occurred under exactly the
+same authorization decision — not a different decision window, not a stale snapshot. The
+field is the binding link across the trail.
+
+**4. The fourth verifier check.**
+A conformant verifier runs four independent checks across the three-record trail:
+
+| Check | Fields compared |
+|-------|----------------|
+| Same call instance | `action_ref` in pre-execution == `action_ref` in receipt |
+| Same proposed payload | `original_args_digest` in pre-execution (verifier-recomputed from disclosed args) |
+| Same dispatched payload | `effective_args_digest` in pre-execution == effective args digest verifier-recomputed from receipt context |
+| **Same authorization decision** | **`authorization_ref` in pre-execution == `authorization_ref` in receipt** |
+
+A trail that passes the first three checks but fails the fourth proves that execution
+proceeded under a different approval than the one recorded in the pre-execution entry —
+the authorization binding is broken.
+
+### Conformance example (byte-verified)
+
+From `examples/conformance/guardrail-provider-v1.fixture.json`, step_2b_authorization_ref:
+
+```
+Preimage:
+  action_ref       = "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f"
+  authorized_scope = "autogen:guardrail"
+  decision_ts      = 1749513600000
+  policy_id        = "guardrail-policy-v1"
+
+JCS payload:
+  {"action_ref":"104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f","authorized_scope":"autogen:guardrail","decision_ts":1749513600000,"policy_id":"guardrail-policy-v1"}
+
+authorization_ref:
+  b9f8494a4a5943687d105769556be2963271e37f2216d2afd279e5b260261327
+```
+
+The fixture also contains NEG-4, the negative case where the receipt carries an
+`authorization_ref` derived from a different `decision_ts` (60 seconds earlier). A
+verifier detects the mismatch and rejects the trail — same call and same dispatched
+payload, but the approval binding is broken.
+
+---
+
 ## Canonical linking key
 
 The same `action_ref` is computable from:
