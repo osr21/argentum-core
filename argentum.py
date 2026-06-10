@@ -1976,7 +1976,7 @@ def mycelium_stats(agent_id: str):
         "agent_id": agent_id,
         "trails_by_origin": by_origin,
         "client_trails": client_trails,
-        "total_excluding_incomplete": sum(by_origin.values()),
+        "total_excluding_incomplete": sum(v for k, v in by_origin.items() if k != "pioneer"),
     }
 
 
@@ -2554,6 +2554,8 @@ async def nexus_trail(request: Request):
     payment_hash = body.get("payment_hash", "") or ""
     negotiation_ref = body.get("negotiation_ref") or None
     preimage = body.get("preimage") or {}
+    _origin_raw = body.get("origin", "nexus")
+    origin_val = _origin_raw if _origin_raw in ("nexus", "pioneer") else "nexus"
 
     agent_id = preimage.get("agent_id", "")
     action_type = preimage.get("action_type", "")
@@ -2605,7 +2607,7 @@ async def nexus_trail(request: Request):
         delegation_ref=payment_hash or None,  # payment_hash externo NEXUS
         negotiation_ref=negotiation_ref,
         skip_monthly_limit=payg_consumed,
-        origin="nexus",
+        origin=origin_val,
     )
 
     if trail_id:
