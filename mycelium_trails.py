@@ -633,3 +633,20 @@ def record_external_nonce(db_path: str, action_ref: str, agent_id: str) -> None:
         )
     finally:
         conn.close()
+
+
+def set_conformance_source(db_path: str, api_key: str, source: str) -> Optional[dict]:
+    """Setea conformance_source en una cuenta PAYG. Devuelve la cuenta actualizada o None."""
+    conn = _connect(db_path)
+    try:
+        conn.execute(
+            "UPDATE payg_accounts SET conformance_source = ?, updated_at = ? WHERE api_key = ?",
+            (source or None, int(time.time()), api_key),
+        )
+        row = conn.execute(
+            "SELECT api_key, agent_id, tier, credit_trails, conformance_source FROM payg_accounts WHERE api_key=?",
+            (api_key,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()

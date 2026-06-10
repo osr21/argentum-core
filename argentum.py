@@ -1131,6 +1131,29 @@ def create_payg_account(request: Request, agent_id: str):
     return {"api_key": api_key, "agent_id": agent_id, "tier": "free", "credit_trails": 0}
 
 
+@app.post("/payg/account/{api_key}/conformance")
+def set_account_conformance(api_key: str, request: Request, source: str):
+    """Admin — setea conformance_source en una cuenta PAYG.
+
+    Requiere header X-Admin-Token. Source debe ser uno de los tiers en CONFORMANCE_TIER
+    (aps, nobulex, safeagent…) o vacío para resetear.
+    """
+    token = request.headers.get("X-Admin-Token", "")
+    if not ADMIN_TOKEN or not hmac.compare_digest(token, ADMIN_TOKEN):
+        raise HTTPException(401, "invalid or missing X-Admin-Token")
+    account = mycelium_trails.set_conformance_source(TRAILS_DB, api_key, source)
+    if account is None:
+        raise HTTPException(404, "api_key not found")
+    weight = CONFORMANCE_TIER.get((source or "").lower(), KARMA_DEFAULT_WEIGHT)
+    return {
+        "api_key":            account["api_key"],
+        "agent_id":           account["agent_id"],
+        "conformance_source": account["conformance_source"],
+        "karma_weight":       weight,
+        "tier":               "conformance_verified" if source in CONFORMANCE_TIER else "default",
+    }
+
+
 # ── LIGHTNING ────────────────────────────────────────────────────────────────
 
 async def phoenixd_create_invoice(amount_sat: int, description: str, external_id: str) -> dict:
@@ -2666,8 +2689,9 @@ async def nexus_trail(request: Request):
     }, status_code=201)
 
 
-DOCUSEAL_TOKEN = os.environ.get("DOCUSEAL_TOKEN", "")
+DOCUSEAL_TOKEN    = os.environ.get("DOCUSEAL_TOKEN", "")
 PIONEER_AGENT_API = os.environ.get("PIONEER_AGENT_API", "http://localhost:8030")
+ADMIN_TOKEN       = os.environ.get("ADMIN_TOKEN", "")
 
 # Hosts autorizados para fetch de PDFs DocuSeal — SSRF allowlist
 _DOCUSEAL_ALLOWED_HOSTS = {"api.docuseal.com", "api.docuseal.co", "app.docuseal.com"}
