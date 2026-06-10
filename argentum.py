@@ -44,7 +44,7 @@ MARKS_API_KEY        = os.environ.get("MARKS_API_KEY", "")
 ARGENTUM_SIGNING_KEY = os.environ.get("ARGENTUM_SIGNING_KEY", "")
 ARGENTUM_VERIFY_KEY  = os.environ.get("ARGENTUM_VERIFY_KEY", "")
 ARGENTUM_BASE_URL    = "https://argentum-api.rgiskard.xyz"
-ARBITRUM_CONTRACT = "0xD467CD1e34515d58F98f8Eb66C0892643ec86AD3"
+ARBITRUM_CONTRACT = "0xe40E376cD32b03E3084F9E0d646155D0Ba0A63ae"
 PAYG_WALLET       = os.environ.get("PAYG_WALLET", "")  # RAMA wallet — PAYG receiver Arbitrum mainnet
 ARB_RPC           = os.environ.get("ARB_RPC", "https://arb1.arbitrum.io/rpc")
 USDC_CONTRACT_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"  # USDC native Arbitrum One
@@ -1843,20 +1843,27 @@ action_ref = hashlib.sha256(canonical).hexdigest()
 
 
 @app.get("/dashboard/trails", response_class=HTMLResponse)
-def trails_dashboard(client: Optional[str] = None, limit: int = 50):
+def trails_dashboard(client: Optional[str] = None, limit: int = 50, show_internal: bool = False):
     """Live trails dashboard — consultable por cliente. Sin push."""
     conn = mycelium_trails._connect(TRAILS_DB)
     if client:
         rows = conn.execute(
             "SELECT trail_id, agent_id, service, operation, scope, timestamp, action_ref, success, origin, tx_hash "
-            "FROM trails WHERE agent_id = ? OR service = ? "
+            "FROM trails WHERE (agent_id = ? OR service = ?) "
             "ORDER BY timestamp DESC LIMIT ?",
             (client, client, min(limit, 200)),
+        ).fetchall()
+    elif show_internal:
+        rows = conn.execute(
+            "SELECT trail_id, agent_id, service, operation, scope, timestamp, action_ref, success, origin, tx_hash "
+            "FROM trails ORDER BY timestamp DESC LIMIT ?",
+            (min(limit, 200),),
         ).fetchall()
     else:
         rows = conn.execute(
             "SELECT trail_id, agent_id, service, operation, scope, timestamp, action_ref, success, origin, tx_hash "
-            "FROM trails ORDER BY timestamp DESC LIMIT ?",
+            "FROM trails WHERE origin != 'pioneer' "
+            "ORDER BY timestamp DESC LIMIT ?",
             (min(limit, 200),),
         ).fetchall()
     conn.close()
@@ -1901,7 +1908,12 @@ def trails_dashboard(client: Optional[str] = None, limit: int = 50):
         </tr>"""
 
     safe_client = e(client or "", quote=True)
-    client_filter_note = f" — <span class='filter'>client: {safe_client}</span>" if client else ""
+    if client:
+        client_filter_note = f" — <span class='filter'>client: {safe_client}</span>"
+    elif show_internal:
+        client_filter_note = " — <span class='filter'>all (internal included)</span>"
+    else:
+        client_filter_note = " — <span class='filter'>client trails only</span>"
     total = len(rows)
 
     html = f"""<!DOCTYPE html>

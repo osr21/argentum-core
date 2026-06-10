@@ -36,6 +36,14 @@ of each evidence record is written to an external append-only surface at executi
 time. After that point, any modification to the record is detectable by an
 independent auditor — without access to the operator's runtime or any prior trust in it.
 
+## Why Operator-Signed Receipts Are Not Enough
+
+Several audit-trail systems for AI agents generate receipts that are signed by the operating platform itself. This is the structural gap: if the signer and the operator are the same entity, a receipt proves that *someone with the operator's key* attested to an event — not that the event occurred, not that the record has not been rewritten, and not that the operator is telling the truth. Offline verification means trusting the operator.
+
+EU AI Act Art. 12 requires that logs be available to the *competent national authority*, which implies independent verification — the authority cannot depend on the operator's infrastructure or key material to assess whether a high-risk system behaved as documented. FCA SYSC 9.1 similarly requires records "sufficient for the FCA to supervise compliance," which presupposes that the FCA can verify record integrity without relying on the firm's own attestation.
+
+Mycelium Trails separates the verifier from the operator by design: the action_ref is derived client-side (SHA-256 over a JCS-canonical preimage), and the hash is anchored on a public blockchain before the record is submitted. A regulator, counterparty, or auditor verifies by recomputing the hash from the preimage fields and confirming the on-chain anchor — no operator key, no operator infrastructure, no operator trust required.
+
 ## Technical Guarantee — Scope and Limits
 
 **What Mycelium Trails proves:** that the evidence record existed, unmodified, at

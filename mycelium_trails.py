@@ -442,7 +442,7 @@ def count_trails_this_month(db_path: str, agent_id: str, now: Optional[int] = No
     conn = _connect(db_path)
     try:
         row = conn.execute(
-            "SELECT COUNT(*) AS n FROM trails WHERE agent_id=? AND timestamp>=?",
+            "SELECT COUNT(*) AS n FROM trails WHERE agent_id=? AND timestamp>=? AND origin != 'pioneer'",
             (agent_id, start),
         ).fetchone()
         return int(row["n"]) if row else 0

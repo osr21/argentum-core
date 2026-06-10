@@ -17,10 +17,10 @@ Each agent action generates an `action_ref` — a SHA-256 digest of four preimag
 import hashlib, json, datetime
 
 def compute_action_ref(agent_id: str, action_type: str, scope: str, timestamp: str) -> str:
-    preimage = {"agent_id": agent_id, "action_type": action_type,
+    # JCS RFC 8785: keys in Unicode code-point order
+    preimage = {"action_type": action_type, "agent_id": agent_id,
                 "scope": scope, "timestamp": timestamp}
-    canonical = json.dumps(dict(sorted(preimage.items())),
-                           separators=(",", ":"), ensure_ascii=False).encode()
+    canonical = json.dumps(preimage, separators=(",", ":"), ensure_ascii=False).encode()
     return hashlib.sha256(canonical).hexdigest()
 
 def now_rfc3339() -> str:

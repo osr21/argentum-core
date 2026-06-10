@@ -11,7 +11,7 @@ import os
 from web3 import Web3
 
 ARBITRUM_RPC     = os.getenv("ARBITRUM_RPC", "https://arb1.arbitrum.io/rpc")
-CONTRACT_ADDRESS = os.getenv("GISKARD_CONTRACT_ADDRESS", "0xD467CD1e34515d58F98f8Eb66C0892643ec86AD3")
+CONTRACT_ADDRESS = os.getenv("GISKARD_CONTRACT_ADDRESS", "0xe40E376cD32b03E3084F9E0d646155D0Ba0A63ae")
 USE_SIGNER       = os.getenv("USE_SIGNER", "0") == "1"
 SIGNER_WALLET_ID = os.getenv("SIGNER_WALLET_ID", "owner")
 SIGNER_CHAIN_ID  = int(os.getenv("SIGNER_CHAIN_ID", "42161"))
