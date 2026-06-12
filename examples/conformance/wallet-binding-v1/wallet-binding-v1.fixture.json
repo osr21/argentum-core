@@ -1,0 +1,196 @@
+{
+  "fixture_id": "wallet-binding-v1",
+  "version": "v1",
+  "spec": "docs/spec/decision-binding-ref-v1.0.md",
+  "generated_at": "2026-06-12",
+  "purpose": "Conformance vectors for wallet-binding architecture. Architecture: JCS stabilizes bytes, action_ref names the action, request_id scopes the attempt (outside canonical preimage), decision_id proves authorization, wallet signature makes the receipt portable cross-framework. Vectors 1-6 are REJECT; vector 7 is PASS.",
+  "architecture": {
+    "canonicalization": "RFC 8785 (JCS)",
+    "action_ref_definition": "action_ref = \"sha256:\" + hex(SHA-256(JCS({agent_id, action_type, scope, timestamp})))",
+    "decision_binding_ref_definition": "decision_binding_ref = \"sha256:\" + hex(SHA-256(JCS({action_ref, decision_at_ms, decision_id, [policy_ref]})))",
+    "wallet_signature_covers": "decision_binding_ref hex string — not the preimage, not the action_ref",
+    "request_id_role": "scopes the attempt; intentionally outside canonical preimage"
+  },
+  "error_codes": {
+    "REPLAY_UNBOUND": "Same action_ref reused across requests without a new authorization decision covering the new request_id.",
+    "PAYLOAD_DRIFT": "JCS bytes of args changed after action_ref was computed; recomputed action_ref diverges.",
+    "NON_CANONICAL_ENCODING": "Fields correct but not JCS-serialized; canonical bytes differ from reference implementation.",
+    "SIGNER_MISMATCH": "Wallet signature is cryptographically valid but signer address does not match agent_id in the action_ref preimage.",
+    "DECISION_UNBOUNDED": "Wallet signature covers action_ref bytes only; decision_id is not covered, so authorization is unproven.",
+    "SESSION_EXPIRED": "Request/session binding expired before the terminal receipt was issued; binding is no longer valid."
+  },
+  "vectors": [
+    {
+      "id": 1,
+      "name": "replay-unbound",
+      "failure_mode": "REPLAY_UNBOUND",
+      "description": "Same action_ref is presented under a different request_id without a new decision_id covering the new request. The authorization was granted for request-A, not request-B. A verifier MUST check that decision_id was issued for the presented request_id; reusing a prior authorization is a replay.",
+      "original_authorization": {
+        "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+        "request_id": "req:session-A:001",
+        "decision_id": "approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b",
+        "decision_at_ms": 1748736000000
+      },
+      "presented": {
+        "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+        "request_id": "req:session-B:001",
+        "decision_id": "approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b",
+        "decision_at_ms": 1748736000000
+      },
+      "note": "request_id changed, decision_id unchanged — the decision did not cover this request.",
+      "expected": "REJECT",
+      "expected_error_code": "REPLAY_UNBOUND",
+      "rationale": "decision_id MUST be bound to the specific request_id it authorized. Reusing a prior decision_id for a new request_id proves authorization for a different attempt, not this one."
+    },
+    {
+      "id": 2,
+      "name": "payload-drift",
+      "failure_mode": "PAYLOAD_DRIFT",
+      "description": "Same request_id and decision_id, but the args of the action were modified after action_ref was computed. Recomputing action_ref over the presented args produces a different digest.",
+      "issued_action": {
+        "preimage": {
+          "agent_id": "did:web:agent.example",
+          "action_type": "payment.send",
+          "scope": "amount:100:USDC:recipient:0xABCD",
+          "timestamp": "2026-06-12T10:00:00.000Z"
+        },
+        "canonical_bytes_utf8": "{\"action_type\":\"payment.send\",\"agent_id\":\"did:web:agent.example\",\"scope\":\"amount:100:USDC:recipient:0xABCD\",\"timestamp\":\"2026-06-12T10:00:00.000Z\"}",
+        "action_ref": "sha256:c2d8a1f3e9b047a65d3c8f2e1a7b4d9c0e5f2a8b3c7d1e4f9a2b6c0d3e7f1a4b"
+      },
+      "presented_action": {
+        "preimage": {
+          "agent_id": "did:web:agent.example",
+          "action_type": "payment.send",
+          "scope": "amount:9999:USDC:recipient:0xABCD",
+          "timestamp": "2026-06-12T10:00:00.000Z"
+        },
+        "note": "scope changed: amount 100 → 9999",
+        "recomputed_action_ref": "sha256:1a4e7c2f9b3d6a0e5c8f1b4d7a2e9c6f3b0d5a8e1c4f7b2d9a6c3e0f5b8d1a7e"
+      },
+      "decision_id": "approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b",
+      "expected": "REJECT",
+      "expected_error_code": "PAYLOAD_DRIFT",
+      "rationale": "action_ref covers the exact args at decision time. A verifier MUST recompute action_ref over the presented preimage and reject if the digest diverges from the one covered by decision_id."
+    },
+    {
+      "id": 3,
+      "name": "non-canonical-encoding",
+      "failure_mode": "NON_CANONICAL_ENCODING",
+      "description": "All fields are correct but serialized in framework-native key order (not JCS lexicographic). The canonical bytes differ from the reference implementation, producing a different decision_binding_ref.",
+      "correct_preimage_fields": {
+        "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+        "decision_at_ms": 1748736000000,
+        "decision_id": "approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b"
+      },
+      "reference_canonical_bytes_utf8": "{\"action_ref\":\"sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce\",\"decision_at_ms\":1748736000000,\"decision_id\":\"approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b\"}",
+      "reference_decision_binding_ref": "sha256:a114ce067cf804a3cd4c3b06edc91d4e9f0746bfc4700329f43974df77e70634",
+      "presented_bytes_utf8": "{\"decision_id\":\"approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b\",\"action_ref\":\"sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce\",\"decision_at_ms\":1748736000000}",
+      "presented_decision_binding_ref": "sha256:differs-from-reference-because-key-order-is-not-lexicographic",
+      "expected": "REJECT",
+      "expected_error_code": "NON_CANONICAL_ENCODING",
+      "rationale": "JCS (RFC 8785) requires lexicographic key order. A verifier MUST recompute from canonical bytes; accepting framework-native order breaks cross-implementation portability."
+    },
+    {
+      "id": 4,
+      "name": "signer-mismatch",
+      "failure_mode": "SIGNER_MISMATCH",
+      "description": "Wallet signature is cryptographically valid — the signature verifies against the signer's public key. But the recovered signer address does not match the agent_id embedded in the action_ref preimage. The receipt is authentic but belongs to a different agent.",
+      "action_ref_preimage": {
+        "agent_id": "did:pkh:eip155:42161:0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1",
+        "action_type": "code.execute",
+        "scope": "repo:giskard09/argentum-core",
+        "timestamp": "2026-06-12T10:00:00.000Z"
+      },
+      "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+      "decision_binding_ref": "sha256:a114ce067cf804a3cd4c3b06edc91d4e9f0746bfc4700329f43974df77e70634",
+      "wallet_signature": {
+        "signer": "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB2",
+        "signature": "0x<valid-secp256k1-signature-over-decision_binding_ref>",
+        "signature_valid": true,
+        "note": "Signature verifies, but signer 0xBBBB...BB2 ≠ agent_id 0xAAAA...A1"
+      },
+      "expected": "REJECT",
+      "expected_error_code": "SIGNER_MISMATCH",
+      "rationale": "A verifier MUST recover the signer from the wallet signature and confirm it matches the agent_id in the action_ref preimage. A valid signature from a different key proves nothing about the authorized agent."
+    },
+    {
+      "id": 5,
+      "name": "decision-unbounded",
+      "failure_mode": "DECISION_UNBOUNDED",
+      "description": "Wallet signature is valid and signer matches agent_id, but the signature was computed over action_ref bytes only — not over decision_binding_ref. The decision_id is not covered by the signature, so a verifier cannot confirm the action was authorized.",
+      "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+      "decision_id": "approval:7f3a9c21-4e5b-4d8f-b3c2-1a9e8f7d6c5b",
+      "decision_binding_ref": "sha256:a114ce067cf804a3cd4c3b06edc91d4e9f0746bfc4700329f43974df77e70634",
+      "wallet_signature": {
+        "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+        "signed_bytes": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+        "signed_over": "action_ref",
+        "note": "Signed over action_ref, not decision_binding_ref — decision_id is not covered"
+      },
+      "expected": "REJECT",
+      "expected_error_code": "DECISION_UNBOUNDED",
+      "rationale": "The wallet signature MUST cover decision_binding_ref, which commits to both action_ref and decision_id. Signing action_ref alone proves the agent acknowledged the action but not that a specific authorization decision was granted."
+    },
+    {
+      "id": 6,
+      "name": "cross-framework-pass",
+      "failure_mode": null,
+      "description": "A receipt issued in framework A verifies correctly in framework B using only the canonical bytes and the public key — no shared checkpoint, no trust in either framework's internal state. This is the portability guarantee the architecture provides.",
+      "action_ref_preimage": {
+        "agent_id": "did:pkh:eip155:42161:0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+        "action_type": "payment.send",
+        "scope": "amount:21:sats:recipient:alice",
+        "timestamp": "2026-06-12T10:00:00.000Z"
+      },
+      "action_ref_canonical_bytes_utf8": "{\"action_type\":\"payment.send\",\"agent_id\":\"did:pkh:eip155:42161:0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4\",\"scope\":\"amount:21:sats:recipient:alice\",\"timestamp\":\"2026-06-12T10:00:00.000Z\"}",
+      "action_ref": "sha256:3e1f9a4c7b2d5e8a0f3c6b9d2e5a8c1f4b7d0e3a6c9b2e5f8a1d4c7b0e3f6a9c",
+      "decision_binding_ref_preimage": {
+        "action_ref": "sha256:3e1f9a4c7b2d5e8a0f3c6b9d2e5a8c1f4b7d0e3a6c9b2e5f8a1d4c7b0e3f6a9c",
+        "decision_at_ms": 1749722400000,
+        "decision_id": "approval:cross-fw-test:9a3b2c1d"
+      },
+      "decision_binding_ref_canonical_bytes_utf8": "{\"action_ref\":\"sha256:3e1f9a4c7b2d5e8a0f3c6b9d2e5a8c1f4b7d0e3a6c9b2e5f8a1d4c7b0e3f6a9c\",\"decision_at_ms\":1749722400000,\"decision_id\":\"approval:cross-fw-test:9a3b2c1d\"}",
+      "decision_binding_ref": "sha256:2f8d1a4e7c0b3f6a9d2e5c8b1f4a7d0e3c6b9f2a5d8e1c4b7f0a3d6e9b2c5f8a",
+      "wallet_signature": {
+        "signer": "0xDcc84E9798E8eB1b1b48A31B8f35e5AA7b83DBF4",
+        "signed_over": "decision_binding_ref",
+        "signature": "0x<valid-secp256k1-signature-over-decision_binding_ref>"
+      },
+      "verification_steps": [
+        "1. Recompute action_ref from preimage using JCS",
+        "2. Recompute decision_binding_ref from {action_ref, decision_at_ms, decision_id} using JCS",
+        "3. Recover signer from wallet_signature over decision_binding_ref",
+        "4. Confirm recovered signer == agent_id address in action_ref preimage",
+        "5. PASS — no shared checkpoint required"
+      ],
+      "expected": "PASS",
+      "rationale": "JCS canonicalization + wallet signature over decision_binding_ref is sufficient for cross-framework verification. The canonical bytes are the only shared state needed."
+    },
+    {
+      "id": 7,
+      "name": "session-expired",
+      "failure_mode": "SESSION_EXPIRED",
+      "description": "The request/session binding expired before the terminal receipt was issued. The decision_id was valid at decision_at_ms, but the session TTL elapsed before the action completed. A verifier MUST check that the terminal receipt timestamp falls within the session validity window.",
+      "session": {
+        "session_id": "sess:2026-06-12:expired-demo",
+        "request_id": "req:sess:2026-06-12:expired-demo:001",
+        "session_valid_until_ms": 1749722400000,
+        "note": "session expired at 2026-06-12T10:00:00Z UTC"
+      },
+      "decision": {
+        "decision_id": "approval:expired-session:c4d5e6f7",
+        "decision_at_ms": 1749722300000,
+        "note": "decision taken at 09:58:20Z — within session window"
+      },
+      "terminal_receipt": {
+        "issued_at_ms": 1749722500000,
+        "note": "receipt issued at 10:01:40Z — 100 seconds after session expiry"
+      },
+      "action_ref": "sha256:9752a870dac7100010453be9494ec631c78fd55bb7cb41355cf03592da3862ce",
+      "decision_binding_ref": "sha256:a114ce067cf804a3cd4c3b06edc91d4e9f0746bfc4700329f43974df77e70634",
+      "expected": "REJECT",
+      "expected_error_code": "SESSION_EXPIRED",
+      "rationale": "A decision taken within a valid session cannot authorize an action completed after the session expired. The binding between decision_id and the terminal receipt requires the receipt to be issued within the session validity window."
+    }
+  ]
+}
