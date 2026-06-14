@@ -49,10 +49,86 @@
       },
       "expected_composition_ref": "ac5ad545b95252eb0934891e8d6e4f47f4e170e7cec58cb628042ed693157efa"
     }
+    ,
+    {
+      "id": "cache-without-parent",
+      "description": "key_source=cache without a prior key_source=resolver event in the chain. Hash recomputes correctly but provenance chain is broken — no population parent. Non-conformant: verifier MUST reject.",
+      "conformant": false,
+      "failure_mode": "CACHE_WITHOUT_POPULATION_PARENT",
+      "composition_artifact": {
+        "action_ref":               "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "authority_verified_at_ms":  1748087390000,
+        "composition_key":           "comp_4b8d2e1f7c9a",
+        "delegation_ref":            "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+        "key_source":                "cache",
+        "revocation_check_at_ms":    1748087395000,
+        "revocation_ref":            "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+        "scope":                     "mycelium:payment",
+        "version":                   "composition-ref-v1"
+      },
+      "expected_composition_ref": "e741e4e7820ce541d8917693220b62c481303fb8de6874621112b6aead7f0f9e"
+    },
+    {
+      "id": "resolver-outside-allowlist",
+      "description": "key_source=resolver with resolver_url outside the declared allowlist. Evidence layer failure independent of wire signature — L1 may pass, L2 MUST reject. Non-conformant.",
+      "conformant": false,
+      "failure_mode": "RESOLVER_OUTSIDE_ALLOWLIST",
+      "composition_artifact": {
+        "action_ref":               "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "authority_verified_at_ms":  1748087390000,
+        "composition_key":           "comp_9e3f1a2b8d5c",
+        "delegation_ref":            "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+        "key_source":                "resolver",
+        "resolver_url":              "https://untrusted.example.com/keys/agent",
+        "revocation_check_at_ms":    1748087395000,
+        "revocation_ref":            "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+        "scope":                     "mycelium:payment",
+        "version":                   "composition-ref-v1"
+      },
+      "expected_composition_ref": "03c95ab789398e9ed62797d451952bb7b4198bdff8b553247878bf69ede6439d"
+    },
+    {
+      "id": "stale-revocation",
+      "description": "revocation_check_at_ms (1748000000000) precedes authority_verified_at_ms (1748087390000) — dual-timestamp invariant violated (authority_verified_at_ms <= revocation_check_at_ms required). L1 passes; L2 rejects on temporal gap. Non-conformant.",
+      "conformant": false,
+      "failure_mode": "DUAL_TIMESTAMP_INVARIANT_VIOLATED",
+      "composition_artifact": {
+        "action_ref":               "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "authority_verified_at_ms":  1748087390000,
+        "composition_key":           "comp_7a2f9c3b1d4e",
+        "delegation_ref":            "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+        "revocation_check_at_ms":    1748000000000,
+        "revocation_ref":            "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+        "scope":                     "mycelium:payment",
+        "version":                   "composition-ref-v1"
+      },
+      "expected_composition_ref": "cf5dfa598f0b9ff8f3a86069e2e24686174440cd4449934e7f07501c4e1b4c39"
+    },
+    {
+      "id": "resolver-to-cache-valid",
+      "description": "key_source=cache with cache_parent_ref pointing to the prior key_source=resolver event (composition_ref ac5ad545... from vector key_source-resolver). Provenance chain intact — population event audited, cache hit references back. Conformant: verifier MUST accept.",
+      "conformant": true,
+      "composition_artifact": {
+        "action_ref":               "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+        "authority_verified_at_ms":  1748087390000,
+        "cache_parent_ref":          "ac5ad545b95252eb0934891e8d6e4f47f4e170e7cec58cb628042ed693157efa",
+        "composition_key":           "comp_2c5e8f3b9a1d",
+        "delegation_ref":            "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+        "key_source":                "cache",
+        "revocation_check_at_ms":    1748087395000,
+        "revocation_ref":            "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+        "scope":                     "mycelium:payment",
+        "version":                   "composition-ref-v1"
+      },
+      "expected_composition_ref": "5a5f7bf700e47246e191ee2a0a31972da03849b3689defacae3bc4c14f31680b"
+    }
   ],
   "notes": [
     "key_source enters the JCS field set — stripping it before hashing produces a wrong composition_ref.",
     "baseline and key_source-inline use identical fields except for key_source presence; their hashes differ by construction.",
-    "hash_algo: SHA-256(JCS(composition_artifact)) where JCS is RFC 8785 (sort_keys=True, separators=(',',':'), ensure_ascii=False)."
+    "hash_algo: SHA-256(JCS(composition_artifact)) where JCS is RFC 8785 (sort_keys=True, separators=(',',':'), ensure_ascii=False).",
+    "Non-conformant vectors carry conformant=false and failure_mode. Hash still recomputes — the failure is semantic, not hash-level.",
+    "resolver-to-cache-valid: cache_parent_ref references the composition_ref of the key_source=resolver population event (vector key_source-resolver). A verifier traces the chain to confirm the cache hit is grounded.",
+    "stale-revocation: revocation_check_at_ms < authority_verified_at_ms violates the invariant authority_verified_at_ms <= revocation_check_at_ms <= action_timestamp_ms."
   ]
 }
