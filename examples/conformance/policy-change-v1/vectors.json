@@ -1,0 +1,107 @@
+{
+  "suite": "policy-change-v1",
+  "version": "1.0",
+  "spec": "../../../docs/spec/action-ref.md",
+  "description": "Conformance vectors for the authorization_ref field in the action_ref preimage. authorization_ref = SHA-256(JCS(policy_snapshot_P)) captures the policy state at execution time. A policy update to P' does not invalidate a prior action_ref — it proves which policy was active. Verifiers MUST recompute authorization_ref from the presented policy snapshot and reject if it diverges from the embedded value.",
+  "action_ref_definition": "action_ref = \"sha256:\" + hex(SHA-256(JCS({action_type, agent_id, authorization_ref, scope, timestamp})))",
+  "authorization_ref_definition": "authorization_ref = \"sha256:\" + hex(SHA-256(JCS(policy_snapshot)))",
+  "canonicalization": "RFC 8785 (JCS)",
+  "generated_at": "2026-06-18",
+  "id_ref": "draft-giskard-aeoess-action-ref",
+  "policy_snapshots": {
+    "policy_P": {
+      "object": {
+        "effect": "allow",
+        "permitted_action": "data.read",
+        "policy_id": "urn:policy:access-control:v1",
+        "scope": "dataset:public",
+        "version": "1.0"
+      },
+      "jcs": "{\"effect\":\"allow\",\"permitted_action\":\"data.read\",\"policy_id\":\"urn:policy:access-control:v1\",\"scope\":\"dataset:public\",\"version\":\"1.0\"}",
+      "sha256": "5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687",
+      "authorization_ref": "sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687"
+    },
+    "policy_Pprime": {
+      "object": {
+        "effect": "allow",
+        "permitted_action": "data.read",
+        "policy_id": "urn:policy:access-control:v1",
+        "scope": "dataset:restricted",
+        "version": "2.0"
+      },
+      "jcs": "{\"effect\":\"allow\",\"permitted_action\":\"data.read\",\"policy_id\":\"urn:policy:access-control:v1\",\"scope\":\"dataset:restricted\",\"version\":\"2.0\"}",
+      "sha256": "88688bbf3507c4af58e553042de859a3d4bfb7b197e43005a521bdd293962953",
+      "authorization_ref": "sha256:88688bbf3507c4af58e553042de859a3d4bfb7b197e43005a521bdd293962953"
+    }
+  },
+  "vectors": [
+    {
+      "id": "pc-001",
+      "name": "snapshot_match",
+      "description": "Action authorized under policy P, verified against the same policy P. The verifier recomputes authorization_ref = SHA-256(JCS(P)) and finds it matches the embedded value. action_ref is byte-identical. Result: PASS.",
+      "preimage": {
+        "action_type": "data.read",
+        "agent_id": "did:web:agent.example",
+        "authorization_ref": "sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687",
+        "scope": "dataset:public",
+        "timestamp": "2026-06-18T10:00:00.000Z"
+      },
+      "canonical": "{\"action_type\":\"data.read\",\"agent_id\":\"did:web:agent.example\",\"authorization_ref\":\"sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687\",\"scope\":\"dataset:public\",\"timestamp\":\"2026-06-18T10:00:00.000Z\"}",
+      "expected": "c9cf23466c1e06e9e0271d24fcb2c30c7299389705e878d77b2b19b0527fe628",
+      "action_ref": "sha256:c9cf23466c1e06e9e0271d24fcb2c30c7299389705e878d77b2b19b0527fe628",
+      "policy_snapshot_used": "policy_P",
+      "expected_result": "PASS",
+      "rationale": "authorization_ref in the preimage equals SHA-256(JCS(policy_P)). The verifier recomputes over the presented policy snapshot and arrives at the same value. action_ref is therefore byte-identical to the issued reference."
+    },
+    {
+      "id": "pc-002",
+      "name": "snapshot_mismatch",
+      "description": "Action was authorized under policy P (authorization_ref = SHA-256(JCS(P))), but someone attempts to verify presenting P' (updated policy) as the policy snapshot. The verifier recomputes authorization_ref from P' and gets a different hash. action_ref recomputed over the tampered preimage diverges from the issued action_ref. Result: FAIL.",
+      "issued_preimage": {
+        "action_type": "data.read",
+        "agent_id": "did:web:agent.example",
+        "authorization_ref": "sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687",
+        "scope": "dataset:public",
+        "timestamp": "2026-06-18T10:00:00.000Z"
+      },
+      "issued_action_ref": "sha256:c9cf23466c1e06e9e0271d24fcb2c30c7299389705e878d77b2b19b0527fe628",
+      "presented_preimage": {
+        "action_type": "data.read",
+        "agent_id": "did:web:agent.example",
+        "authorization_ref": "sha256:88688bbf3507c4af58e553042de859a3d4bfb7b197e43005a521bdd293962953",
+        "scope": "dataset:public",
+        "timestamp": "2026-06-18T10:00:00.000Z"
+      },
+      "presented_canonical": "{\"action_type\":\"data.read\",\"agent_id\":\"did:web:agent.example\",\"authorization_ref\":\"sha256:88688bbf3507c4af58e553042de859a3d4bfb7b197e43005a521bdd293962953\",\"scope\":\"dataset:public\",\"timestamp\":\"2026-06-18T10:00:00.000Z\"}",
+      "recomputed_action_ref": "sha256:f9d89e83b8cb19cf0b5aefda4d29d68cf9578aba4c75c2b4b99dd5d6f190ffc1",
+      "policy_snapshot_presented": "policy_Pprime",
+      "expected_result": "FAIL",
+      "expected_error_code": "POLICY_SNAPSHOT_MISMATCH",
+      "rationale": "The verifier MUST recompute authorization_ref from the presented policy snapshot. SHA-256(JCS(P')) != SHA-256(JCS(P)), so the preimage changes, and the recomputed action_ref diverges from the issued action_ref. The verifier MUST reject."
+    },
+    {
+      "id": "pc-003",
+      "name": "policy_updated_after_action",
+      "description": "Action authorized and executed under policy P. Policy is subsequently updated to P'. A verifier operating under P' receives the original action_ref, the policy_snapshot_P as historical evidence, and the current policy P'. The verifier computes SHA-256(JCS(policy_snapshot_P)) and confirms it matches authorization_ref embedded in the issued action_ref — proving P was active at execution time. The policy update does not invalidate the action_ref. Result: PASS.",
+      "issued_preimage": {
+        "action_type": "data.read",
+        "agent_id": "did:web:agent.example",
+        "authorization_ref": "sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687",
+        "scope": "dataset:public",
+        "timestamp": "2026-06-18T10:00:00.000Z"
+      },
+      "issued_canonical": "{\"action_type\":\"data.read\",\"agent_id\":\"did:web:agent.example\",\"authorization_ref\":\"sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687\",\"scope\":\"dataset:public\",\"timestamp\":\"2026-06-18T10:00:00.000Z\"}",
+      "issued_action_ref": "sha256:c9cf23466c1e06e9e0271d24fcb2c30c7299389705e878d77b2b19b0527fe628",
+      "policy_snapshot_at_execution": "policy_P",
+      "current_policy": "policy_Pprime",
+      "verification_steps": {
+        "step_1": "Recompute authorization_ref = SHA-256(JCS(policy_snapshot_P)) = sha256:5f9fa0d01106306a8d9c52c045344fd47d9399a2c60d28c6ff77048e3cc16687",
+        "step_2": "Confirm recomputed authorization_ref == embedded authorization_ref in issued_preimage — TRUE",
+        "step_3": "Recompute action_ref over issued_preimage — SHA-256(issued_canonical) = c9cf23466c1e06e9e0271d24fcb2c30c7299389705e878d77b2b19b0527fe628",
+        "step_4": "Confirm recomputed action_ref == issued_action_ref — TRUE"
+      },
+      "expected_result": "PASS",
+      "rationale": "authorization_ref binds the policy state at execution time into the action_ref preimage. A subsequent policy update changes P but not the historical authorization_ref hash. The verifier can independently confirm that P was active when the action_ref was issued. This is the core invariant: action_ref is a commitment to both the action and the policy under which it was authorized."
+    }
+  ]
+}
