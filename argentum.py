@@ -2565,6 +2565,9 @@ async def external_trail(request: Request):
     # tier viene del registro de la cuenta, no del cuerpo
     conformance_source = (account.get("conformance_source") or "").strip().lower()
     weight = CONFORMANCE_TIER.get(conformance_source, KARMA_DEFAULT_WEIGHT)
+    # Providers verificados: ilimitado mientras conformance_source activo — rate_limit_cap=0
+    # salta el bloque entero de chequeos diario+mensual en record_trail.
+    is_verified_provider = conformance_source in CONFORMANCE_TIER
 
     mycelium_trails.record_external_nonce(TRAILS_DB, action_ref, agent_id)
 
@@ -2575,6 +2578,8 @@ async def external_trail(request: Request):
         operation=operation,
         nonce=action_ref,
         origin="external",
+        rate_limit_cap=0 if is_verified_provider else mycelium_trails.RATE_LIMIT_DEFAULT,
+        skip_monthly_limit=is_verified_provider,
     )
     if trail_id:
         _conn = mycelium_trails._connect(TRAILS_DB)

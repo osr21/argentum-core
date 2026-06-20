@@ -6,6 +6,27 @@ A "Mycelium Provider" is any system that computes `action_ref` deterministically
 
 ---
 
+## 0. Create your account
+
+```
+POST https://argentum-api.rgiskard.xyz/payg/account?agent_id=<your-agent-id>
+```
+
+Returns your `api_key` immediately. No signup required.
+
+```json
+{
+  "api_key": "ark_...",
+  "agent_id": "your-agent-id",
+  "tier": "payg",
+  "credit_trails": 0
+}
+```
+
+Once your conformance vectors are merged into `argentum-core` and your account is flagged as a verified provider, trail submission is **unlimited** with no credit management — as long as your `conformance_source` is active.
+
+---
+
 ## 1. Compute action_ref
 
 `action_ref` is a content-addressed identifier derived from four fields. Any party holding those fields can independently verify it — no trust in the emitting system required.
