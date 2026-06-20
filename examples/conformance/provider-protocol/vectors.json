@@ -1,0 +1,71 @@
+{
+  "suite": "mycelium-provider-protocol-v1",
+  "version": "1.0",
+  "spec": "../../../docs/mycelium-provider-protocol.md",
+  "description": "Conformance vectors for the Mycelium Provider Protocol. Each vector carries the expected lowercase-hex SHA-256 of the RFC 8785 JCS canonicalization of the four-field action_ref preimage. A provider implementation passes when its compute_action_ref output matches expected byte-for-byte.",
+  "vectors": [
+    {
+      "id": "pp-001",
+      "description": "Typical provider submission: DID agent_id, namespaced scope, zero-millisecond timestamp.",
+      "input": {
+        "agent_id": "did:aps:zProviderAgent001",
+        "action_type": "document.sign",
+        "scope": "mycelium:provider-protocol",
+        "timestamp": "2026-06-20T14:00:00.000Z"
+      },
+      "canonical": "{\"action_type\":\"document.sign\",\"agent_id\":\"did:aps:zProviderAgent001\",\"scope\":\"mycelium:provider-protocol\",\"timestamp\":\"2026-06-20T14:00:00.000Z\"}",
+      "expected": "a0de245ffff300fe5aeb6e110c55b1ea623aaae49bda8a5e5f258b28b06c3ff9"
+    },
+    {
+      "id": "pp-002",
+      "description": "Scope empty string. Providers that do not namespace scope pass the empty string, not null or omit the field.",
+      "input": {
+        "agent_id": "did:web:provider.example.com",
+        "action_type": "action",
+        "scope": "",
+        "timestamp": "2026-01-01T00:00:00.000Z"
+      },
+      "canonical": "{\"action_type\":\"action\",\"agent_id\":\"did:web:provider.example.com\",\"scope\":\"\",\"timestamp\":\"2026-01-01T00:00:00.000Z\"}",
+      "expected": "e1aecf30cbc5451d4f2149739c2bc6d49742df1082f5aa2d9b4144baf51d29bf"
+    },
+    {
+      "id": "pp-003",
+      "description": "Key-order independence: same tuple in three different JSON key orders must produce the same hash (identical to pp-001).",
+      "input": {
+        "agent_id": "did:aps:zProviderAgent001",
+        "action_type": "document.sign",
+        "scope": "mycelium:provider-protocol",
+        "timestamp": "2026-06-20T14:00:00.000Z"
+      },
+      "input_json_variants": [
+        "{\"agent_id\":\"did:aps:zProviderAgent001\",\"action_type\":\"document.sign\",\"scope\":\"mycelium:provider-protocol\",\"timestamp\":\"2026-06-20T14:00:00.000Z\"}",
+        "{\"timestamp\":\"2026-06-20T14:00:00.000Z\",\"scope\":\"mycelium:provider-protocol\",\"action_type\":\"document.sign\",\"agent_id\":\"did:aps:zProviderAgent001\"}",
+        "{\"scope\":\"mycelium:provider-protocol\",\"agent_id\":\"did:aps:zProviderAgent001\",\"timestamp\":\"2026-06-20T14:00:00.000Z\",\"action_type\":\"document.sign\"}"
+      ],
+      "canonical": "{\"action_type\":\"document.sign\",\"agent_id\":\"did:aps:zProviderAgent001\",\"scope\":\"mycelium:provider-protocol\",\"timestamp\":\"2026-06-20T14:00:00.000Z\"}",
+      "expected": "a0de245ffff300fe5aeb6e110c55b1ea623aaae49bda8a5e5f258b28b06c3ff9"
+    },
+    {
+      "id": "pp-reject-001",
+      "reject": true,
+      "reason": "timestamp missing milliseconds — not RFC 3339 with 3-digit fractional seconds",
+      "input": {
+        "agent_id": "did:aps:zProviderAgent001",
+        "action_type": "document.sign",
+        "scope": "mycelium:provider-protocol",
+        "timestamp": "2026-06-20T14:00:00Z"
+      }
+    },
+    {
+      "id": "pp-reject-002",
+      "reject": true,
+      "reason": "timestamp with 6-digit fractional seconds — only 3 digits allowed",
+      "input": {
+        "agent_id": "did:aps:zProviderAgent001",
+        "action_type": "document.sign",
+        "scope": "mycelium:provider-protocol",
+        "timestamp": "2026-06-20T14:00:00.000000Z"
+      }
+    }
+  ]
+}

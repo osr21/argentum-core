@@ -2524,15 +2524,15 @@ def get_leaderboard(top: int = 10) -> str:
 
 @app.post("/external/trail")
 async def external_trail(request: Request):
-    """Registra un trail de implementación externa y acumula karma según conformance tier.
+    """Registra trail de implementación externa y acumula karma según conformance tier.
 
-    Tier 1.0 (nexus): usa /nexus/trail — requiere anchor on-chain.
     Tier 0.7 (aps, nobulex): conformance_source registrado en payg_accounts.
     Tier 0.2 (default): action_ref válido, source desconocido.
+    Tier nexus: usar /nexus/trail — requiere anchor on-chain.
 
     No ancla on-chain — el anchor es diferencial del tier nexus.
     Seguridad: api_key vincula agent_id (no autodeclarado), conformance_source
-    viene del registro de la cuenta (no del cuerpo), action_ref es nonce único.
+    viene del registro de la cuenta, action_ref es nonce único.
     """
     try:
         body = await request.json()
@@ -2541,6 +2541,8 @@ async def external_trail(request: Request):
 
     action_ref = (body.get("action_ref") or "").strip()
     api_key    = (body.get("api_key") or "").strip()
+    service    = (body.get("service") or "external").strip()
+    operation  = (body.get("operation") or "action").strip()
 
     if not (action_ref and api_key):
         return JSONResponse({"error": "action_ref, api_key required"}, status_code=400)
@@ -2566,6 +2568,19 @@ async def external_trail(request: Request):
 
     mycelium_trails.record_external_nonce(TRAILS_DB, action_ref, agent_id)
 
+    trail_id = mycelium_trails.record_trail(
+        TRAILS_DB,
+        agent_id=agent_id,
+        service=service,
+        operation=operation,
+        nonce=action_ref,
+        origin="external",
+    )
+    if trail_id:
+        _conn = mycelium_trails._connect(TRAILS_DB)
+        _conn.execute("UPDATE trails SET action_ref = ? WHERE trail_id = ?", (action_ref, trail_id))
+        _conn.close()
+
     conn = get_db()
     upsert_wisdom(conn, agent_id, agent_id, "agent",
                   karma_delta=weight, action=True,
@@ -2576,6 +2591,7 @@ async def external_trail(request: Request):
 
     return JSONResponse({
         "ok": True,
+        "mycelium_trail_id": trail_id,
         "agent_id": agent_id,
         "action_ref": action_ref,
         "source": conformance_source or "unknown",
@@ -2613,11 +2629,12 @@ async def nexus_trail(request: Request):
     agent_id = preimage.get("agent_id", "")
     action_type = preimage.get("action_type", "")
     scope = preimage.get("scope", "")
-    ts = preimage.get("ts")
+    # accept "timestamp" (canonical key) or legacy "ts"
+    ts = preimage.get("timestamp") or preimage.get("ts")
 
     if not (action_ref and service and agent_id and action_type and ts is not None):
         return JSONResponse(
-            {"error": "action_ref, service, preimage.{agent_id,action_type,scope,ts} required"},
+            {"error": "action_ref, service, preimage.{agent_id,action_type,scope,timestamp} required"},
             status_code=400,
         )
 
