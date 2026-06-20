@@ -35,6 +35,45 @@
       "jcs_payload": "{\"action_type\":\"PII_BLOCKED\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.pay:api.merchant.example\",\"timestamp\":\"2026-06-15T19:13:50.564Z\"}",
       "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a225049495f424c4f434b4544222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e7061793a6170692e6d65726368616e742e6578616d706c65222c2274696d657374616d70223a22323032362d30362d31355431393a31333a35302e3536345a227d",
       "action_ref": "a7e567423b04cf71d34ae1d8dfec97a4d51f176dff0cffe516be008010f36c25"
+    },
+    {
+      "id": "presidio-x402-003",
+      "description": "screen_ref for a PII_REDACTED screening decision: action_type is 'pii_screen', scope encodes verdict + entity types found. Same derivation as pp-001/pp-002 — action_ref applied to the screening verdict itself, not the post-settlement action. Proposed by vstantch in x402#2332 as sibling pointer alongside v_gate and mycelium_trail_id.",
+      "preimage": {
+        "action_type": "pii_screen",
+        "agent_id": "did:presidio:x402:agent-7f3a9c",
+        "scope": "presidio:x402.screen:PII_REDACTED:EMAIL_ADDRESS,US_SSN",
+        "timestamp": "2026-06-20T17:45:00.000Z"
+      },
+      "jcs_payload": "{\"action_type\":\"pii_screen\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.screen:PII_REDACTED:EMAIL_ADDRESS,US_SSN\",\"timestamp\":\"2026-06-20T17:45:00.000Z\"}",
+      "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227069695f73637265656e222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e73637265656e3a5049495f52454441435445443a454d41494c5f414444524553532c55535f53534e222c2274696d657374616d70223a22323032362d30362d32305431373a34353a30302e3030305a227d",
+      "action_ref": "c832ef8610c6989f8c6f5cea51ac019b8ac9860e389110079a895e67595950a2"
+    },
+    {
+      "id": "presidio-x402-004",
+      "description": "screen_ref for a PII_BLOCKED screening decision: payment blocked because US_SSN detected. Negative screening verdict — the block is recorded, not silent.",
+      "preimage": {
+        "action_type": "pii_screen",
+        "agent_id": "did:presidio:x402:agent-7f3a9c",
+        "scope": "presidio:x402.screen:PII_BLOCKED:US_SSN",
+        "timestamp": "2026-06-20T17:45:01.000Z"
+      },
+      "jcs_payload": "{\"action_type\":\"pii_screen\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.screen:PII_BLOCKED:US_SSN\",\"timestamp\":\"2026-06-20T17:45:01.000Z\"}",
+      "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227069695f73637265656e222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e73637265656e3a5049495f424c4f434b45443a55535f53534e222c2274696d657374616d70223a22323032362d30362d32305431373a34353a30312e3030305a227d",
+      "action_ref": "729b8c8ddaa4b136916aaa5175e72041a7c142bb4903ee32ae9ff7b6e2d13da0"
+    },
+    {
+      "id": "presidio-x402-005",
+      "description": "screen_ref for a clean-allow screening decision: no PII found, payment cleared.",
+      "preimage": {
+        "action_type": "pii_screen",
+        "agent_id": "did:presidio:x402:agent-7f3a9c",
+        "scope": "presidio:x402.screen:clean-allow",
+        "timestamp": "2026-06-20T17:45:02.000Z"
+      },
+      "jcs_payload": "{\"action_type\":\"pii_screen\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.screen:clean-allow\",\"timestamp\":\"2026-06-20T17:45:02.000Z\"}",
+      "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227069695f73637265656e222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e73637265656e3a636c65616e2d616c6c6f77222c2274696d657374616d70223a22323032362d30362d32305431373a34353a30322e3030305a227d",
+      "action_ref": "d9f8ecb35fef996e58a72cee801c17b4ca40c3ed3dede89438830e7a4a8c911d"
     }
   ],
   "derived_from": {
