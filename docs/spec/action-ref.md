@@ -67,6 +67,17 @@ These examples are verified in production trails anchored on-chain via Mycelium.
 
 Emitters that do not namespace their scope remain valid — the convention is a recommendation, not a requirement. A verifier MUST NOT reject a trail solely because its `scope` lacks a namespace prefix.
 
+**Conformance rule — multi-value scope segments:** when a scope segment encodes a set of values (e.g. entity types detected by a screening decision), implementations MUST sort those values lexicographically and join them with a comma and no spaces before embedding in the scope string. This rule ensures byte-determinism across implementations that may produce values in detection order, which is not guaranteed stable.
+
+Example (PII screening):
+```
+presidio:x402.screen:PII_REDACTED:EMAIL_ADDRESS,US_SSN   ← correct (E < U)
+presidio:x402.screen:PII_REDACTED:US_SSN,EMAIL_ADDRESS   ← non-conformant
+presidio:x402.screen:clean-allow                          ← correct (no entity segment when set is empty)
+```
+
+Two implementations that produce the same entity set in different detection orders MUST both produce the same scope string after applying this rule, and therefore the same `action_ref`.
+
 ## Serialization — JCS (RFC 8785)
 
 The four fields are serialized as a JSON object using RFC 8785 JSON Canonicalization Scheme before hashing:

@@ -51,16 +51,16 @@
     },
     {
       "id": "presidio-x402-004",
-      "description": "screen_ref for a PII_BLOCKED screening decision: payment blocked because US_SSN detected. Negative screening verdict — the block is recorded, not silent.",
+      "description": "screen_ref for a PII_BLOCKED screening decision: payment blocked because PII detected (EMAIL_ADDRESS and US_SSN). Entity types lexicographically sorted, comma-joined (E < U). Negative screening verdict — the block is recorded, not silent.",
       "preimage": {
         "action_type": "pii_screen",
         "agent_id": "did:presidio:x402:agent-7f3a9c",
-        "scope": "presidio:x402.screen:PII_BLOCKED:US_SSN",
+        "scope": "presidio:x402.screen:PII_BLOCKED:EMAIL_ADDRESS,US_SSN",
         "timestamp": "2026-06-20T17:45:01.000Z"
       },
-      "jcs_payload": "{\"action_type\":\"pii_screen\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.screen:PII_BLOCKED:US_SSN\",\"timestamp\":\"2026-06-20T17:45:01.000Z\"}",
-      "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227069695f73637265656e222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e73637265656e3a5049495f424c4f434b45443a55535f53534e222c2274696d657374616d70223a22323032362d30362d32305431373a34353a30312e3030305a227d",
-      "action_ref": "729b8c8ddaa4b136916aaa5175e72041a7c142bb4903ee32ae9ff7b6e2d13da0"
+      "jcs_payload": "{\"action_type\":\"pii_screen\",\"agent_id\":\"did:presidio:x402:agent-7f3a9c\",\"scope\":\"presidio:x402.screen:PII_BLOCKED:EMAIL_ADDRESS,US_SSN\",\"timestamp\":\"2026-06-20T17:45:01.000Z\"}",
+      "preimage_canonical_bytes_hex": "7b22616374696f6e5f74797065223a227069695f73637265656e222c226167656e745f6964223a226469643a707265736964696f3a783430323a6167656e742d376633613963222c2273636f7065223a22707265736964696f3a783430322e73637265656e3a5049495f424c4f434b45443a454d41494c5f414444524553532c55535f53534e222c2274696d657374616d70223a22323032362d30362d32305431373a34353a30312e3030305a227d",
+      "action_ref": "79509b33e9ad2bf7bf4f80bff2dd73d04e012204ae63bb1bbc1b9d052f337ef4"
     },
     {
       "id": "presidio-x402-005",
