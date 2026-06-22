@@ -367,6 +367,24 @@ action_ref:
   36fe8d0559bb254c20cdb0e7a0c83e53f0434fc076e856ff769444da2a73b0b4
 ```
 
+## State vs Identity
+
+`action_ref` is state-agnostic. It identifies an action — who performed it, what type, what scope, at what moment — not the outcome of that action.
+
+Two receipts for the same action instance in different execution states (`in-progress`, `completed`, `failed`) will produce the same `action_ref`. This is correct by design.
+
+**Implication for verifiers:** a shared `action_ref` across two receipts with different states is not a collision and not a replay. A verifier MUST NOT reject on that basis alone.
+
+To determine whether an action reached a terminal state, inspect the `terminal` field (or its equivalent) in the **signed receipt** — not `action_ref` alone.
+
+**Why this separation matters:** `action_ref` binds identity (the four preimage fields). State is a property of the execution record, not of the action itself. Mixing them would mean an in-progress and a completed receipt of the same action compute different identifiers, which breaks cross-system correlation — a verifier holding a terminal receipt would be unable to match it against an in-progress anchor from a different system.
+
+**The signing layer closes the gap:** `signing-trust-ref-v1` covers the full receipt envelope, including the `terminal` field and any other state fields. An attacker cannot swap a terminal receipt for an in-progress one without invalidating the signature. `action_ref` anchors identity; the signed envelope anchors state.
+
+**Conformance:** vector `same_action_ref_different_state` in `examples/conformance/near-miss-v1/near-miss-v1.fixture.json` documents this property with byte-verified hashes and `expected_result: KNOWN_DESIGN_PROPERTY`.
+
+---
+
 ## Cross-references
 
 - Reference implementation: [`plugins/agt_evidence_anchor/action_ref.py`](../../plugins/agt_evidence_anchor/action_ref.py)
