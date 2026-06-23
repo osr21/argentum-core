@@ -169,6 +169,7 @@
       "attempted_effective_args_digest": "72812219c9729b0152e0f01cf454991e807fc1706e6b34bb411ff1c49131be5c",
       "changed_fields": ["amount"],
       "invariant_violated": "attempted_effective_args_digest != original_args_digest with no authorized guardrail revision — old approval does not carry forward",
+      "verifier_reason": ["argument_digest_mismatch"],
       "verifier_outcome": "REJECT — gate must deny execution before Stripe call; a new approval record for effective_args_digest is required",
       "note": "idempotency_key is intentionally unchanged to confirm the gate checks the full args digest, not just the idempotency key",
       "independent_reproductions": [
@@ -206,6 +207,7 @@
         "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
       },
       "invariant_violated": "pre_execution.authorization_ref != receipt.authorization_ref — execution was tied to a different authorization decision",
+      "verifier_reason": ["decision_expired", "policy_binding_mismatch"],
       "verifier_outcome": "REJECT — verifier can confirm same call and same dispatched payload, but cannot confirm same authorization decision; the approval binding is broken"
     },
     {
@@ -218,8 +220,10 @@
         "record_type": "receipt",
         "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
       },
+      "positive_control": "receipt is format-valid; action_ref recomputes correctly from intent tuple — this is not a malformed record",
       "note": "action_ref is valid and recomputable; decision_binding_ref is absent — not malformed, just unbound to any authorization decision",
       "invariant_violated": "receipt.decision_binding_ref is absent — no authorization decision is bound to this execution",
+      "verifier_reason": ["missing_decision_binding_ref"],
       "verifier_outcome": "OBSERVABLE_NOT_AUTHORIZED — receipt is well-formed and action_ref is valid, but the execution cannot be classified as authorized without a matching decision_binding_ref"
     },
     {
@@ -241,9 +245,34 @@
         "record_type": "receipt",
         "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
       },
+      "positive_control": "receipt is format-valid and decision_binding_ref resolves to a real decision record — this is not a malformed receipt",
       "note": "decision_binding_ref in receipt resolves to a decision with outcome='block'. The binding is structurally valid but semantically denying. A verifier must inspect the referenced decision outcome, not just confirm the ref resolves.",
       "invariant_violated": "pre_execution_decision_record.outcome == 'block' — decision_binding_ref resolves to a denial, not an authorization; receipt cannot claim AUTHORIZED_EXECUTION",
+      "verifier_reason": ["decision_outcome_not_allow"],
       "verifier_outcome": "QUIET_SWAP_OR_STALE — decision exists and decision_binding_ref resolves, but the referenced decision did not authorize execution; presenting this receipt as proof of authorization is a quiet swap"
+    },
+    {
+      "id": "NEG-8",
+      "label": "decision_binding_ref resolves to a different action_ref — cross-action binding",
+      "description": "A receipt presents a decision_binding_ref that is structurally valid and resolves to a real authorization decision, but that decision was issued for a different action_ref (different intent tuple). A verifier recomputing decision_binding_ref from the referenced decision's preimage will find action_ref_in_decision != receipt.action_ref. The receipt cannot claim authorization for this action instance — the approval was for a different call.",
+      "receipt": {
+        "action_ref": "104812928eb50e0e1ad28f379f8ade03ea0f479ac7abd1bbf9205e9317665c7f",
+        "decision_binding_ref": "10b8adcb487beebf40b3188df27474afb67be2a4dca82a32a28ee7d9bd32be8d",
+        "outcome": "success",
+        "record_type": "receipt",
+        "result_digest": "0987d5268eea55d9a5e1a8f6148b8d3b3b8e7d2bfe3088f2b4317df617673882"
+      },
+      "referenced_decision_preimage": {
+        "action_ref": "e6dd416ea108a1600522614957d9da7c815bc02b4c3b4886c80c776ebf88d6cb",
+        "authorized_scope": "stripe:charge",
+        "decision_ts": 1749650400000,
+        "policy_id": "stripe-guardrail-policy-v1"
+      },
+      "note": "decision_binding_ref resolves correctly to the NEG-5 Stripe decision (action_ref e6dd416e…). The receipt action_ref is 104812928e… (autogen:guardrail intent). The two action_refs do not match — this decision was not issued for this action.",
+      "positive_control": "decision_binding_ref is structurally valid and resolves to a real decision record — this is not a malformed ref",
+      "invariant_violated": "decision.action_ref (e6dd416e…) != receipt.action_ref (104812928e…) — the referenced authorization was issued for a different action instance",
+      "verifier_reason": ["action_ref_mismatch"],
+      "verifier_outcome": "QUIET_SWAP_OR_STALE — decision_binding_ref resolves but the bound decision was issued for a different action_ref; this receipt cannot claim authorization for the current action instance"
     }
   ]
 }
