@@ -1,0 +1,175 @@
+{
+  "fixture_id": "action-ref-retrieval-provenance-v1",
+  "version": "v1",
+  "spec": "docs/spec/action-ref.md",
+  "id_ref": "draft-giskard-aeoess-action-ref",
+  "generated_at": "2026-06-23",
+  "purpose": "Conformance vectors for per-chunk retrieval provenance under action-ref-v1. Per-chunk provenance rides inside the signed retriever receipt (no change to action_ref, which stays component-level). A conformant trace lets an independent verifier map every generator claim back to a specific span in a specific document. Each fail-closed vector is a way that property breaks.",
+  "action_ref_definition": "action_ref = \"sha256:\" + hex(SHA-256(JCS({agent_id, action_type, scope, timestamp})))",
+  "source_hash_definition": "source_hash = \"sha256:\" + hex(SHA-256(JCS({bbox, chunk_id, doc_id, page, text})))",
+  "canonicalization": "RFC 8785 (JCS)",
+  "error_codes": {
+    "SOURCE_HASH_MISMATCH": "Presented span does not recompute to the embedded source_hash under JCS or colon-join — content altered after signing.",
+    "NONCANONICAL_DERIVATION": "source_hash recomputes under colon-joined string but not under JCS; derivation is not portable across honest implementations.",
+    "UNANCHORED_CLAIM": "A generator claim cites a chunk_id absent from the retriever receipt — claim has no traceable provenance."
+  },
+  "vectors": [
+    {
+      "name": "conformant_per_chunk_trace",
+      "check": "RETRIEVAL_PROVENANCE",
+      "expected_result": "pass",
+      "description": "Retriever receipt carries retrieved_chunks with JCS-canonical source_hash per span; the generator output cites only chunk_ids present in the receipt. Every claim is traceable to a specific span — the defensibility test holds for an independent verifier.",
+      "receipt": {
+        "component": "retriever",
+        "component_type": "InMemoryBM25Retriever",
+        "action_ref": "sha256:fc4e452980b7b610db793c86aa97f635128cd8f9cb5f817ba6cb5e99ba9b856c",
+        "retrieved_chunks": [
+          {
+            "doc_id": "doc:msa-2026.pdf",
+            "chunk_id": "c-0007",
+            "page": 3,
+            "bbox": [
+              72,
+              410,
+              523,
+              458
+            ],
+            "text": "Either party may terminate this Agreement upon thirty (30) days written notice.",
+            "source_hash": "sha256:8eee7d2845c49f566d8841b17cbfd3d2938b881af30b3e2271596b424a9daf47"
+          },
+          {
+            "doc_id": "doc:msa-2026.pdf",
+            "chunk_id": "c-0012",
+            "page": 5,
+            "bbox": [
+              72,
+              120,
+              523,
+              196
+            ],
+            "text": "Liability under this Agreement shall not exceed fees paid in the prior twelve months.",
+            "source_hash": "sha256:8515839ef1f23d3ab0aba2ee8ba79292798251279bb11fcf7cab4c31e58d6acc"
+          }
+        ]
+      },
+      "generator_output": {
+        "component": "generator",
+        "claims": [
+          {
+            "text": "The contract allows termination on 30 days notice.",
+            "cited_chunk_id": "c-0007"
+          },
+          {
+            "text": "Liability is capped at trailing twelve-month fees.",
+            "cited_chunk_id": "c-0012"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tampered_span_mismatch",
+      "check": "RETRIEVAL_PROVENANCE",
+      "expected_result": "fail-closed",
+      "expected_error_code": "SOURCE_HASH_MISMATCH",
+      "description": "The presented chunk text was altered after the receipt was signed (30 -> 90 days). The embedded source_hash, derived over the original span, no longer recomputes over the presented span — and does not match a colon-joined derivation either. Content tampering, not a derivation choice.",
+      "receipt": {
+        "component": "retriever",
+        "action_ref": "sha256:fc4e452980b7b610db793c86aa97f635128cd8f9cb5f817ba6cb5e99ba9b856c",
+        "retrieved_chunks": [
+          {
+            "doc_id": "doc:msa-2026.pdf",
+            "chunk_id": "c-0007",
+            "page": 3,
+            "bbox": [
+              72,
+              410,
+              523,
+              458
+            ],
+            "text": "Either party may terminate this Agreement upon ninety (90) days written notice.",
+            "source_hash": "sha256:8eee7d2845c49f566d8841b17cbfd3d2938b881af30b3e2271596b424a9daf47"
+          }
+        ]
+      },
+      "generator_output": {
+        "component": "generator",
+        "claims": [
+          {
+            "text": "Termination requires 90 days notice.",
+            "cited_chunk_id": "c-0007"
+          }
+        ]
+      }
+    },
+    {
+      "name": "noncanonical_colon_join",
+      "check": "RETRIEVAL_PROVENANCE",
+      "expected_result": "fail-closed",
+      "expected_error_code": "NONCANONICAL_DERIVATION",
+      "description": "The source_hash was derived by colon-joining the span fields into a string before hashing, instead of JCS (RFC 8785) over the span object. It recomputes under the colon-joined form but not under JCS — so two honest implementations canonicalizing the same span produce different hashes, and an independent verifier cannot reproduce the trace. The verifier proves non-canonical derivation by recomputing both forms.",
+      "receipt": {
+        "component": "retriever",
+        "action_ref": "sha256:fc4e452980b7b610db793c86aa97f635128cd8f9cb5f817ba6cb5e99ba9b856c",
+        "retrieved_chunks": [
+          {
+            "doc_id": "doc:msa-2026.pdf",
+            "chunk_id": "c-0012",
+            "page": 5,
+            "bbox": [
+              72,
+              120,
+              523,
+              196
+            ],
+            "text": "Liability under this Agreement shall not exceed fees paid in the prior twelve months.",
+            "source_hash": "sha256:deaa476cd0b5b19cb4cf59b8c1432dfa8ca4c8760c9045595902c9ee9f15e3d7"
+          }
+        ]
+      },
+      "generator_output": {
+        "component": "generator",
+        "claims": [
+          {
+            "text": "Liability is capped.",
+            "cited_chunk_id": "c-0012"
+          }
+        ]
+      }
+    },
+    {
+      "name": "unanchored_generator_claim",
+      "check": "RETRIEVAL_PROVENANCE",
+      "expected_result": "fail-closed",
+      "expected_error_code": "UNANCHORED_CLAIM",
+      "description": "The generator emits a claim citing chunk_id c-9999, which is not present in the retriever receipt's retrieved_chunks. The claim has no provenance — it fails the defensibility test 'every answer traceable to a specific source passage'. All present chunks have valid JCS source_hashes, so the only failure is the orphaned claim.",
+      "receipt": {
+        "component": "retriever",
+        "action_ref": "sha256:fc4e452980b7b610db793c86aa97f635128cd8f9cb5f817ba6cb5e99ba9b856c",
+        "retrieved_chunks": [
+          {
+            "doc_id": "doc:msa-2026.pdf",
+            "chunk_id": "c-0007",
+            "page": 3,
+            "bbox": [
+              72,
+              410,
+              523,
+              458
+            ],
+            "text": "Either party may terminate this Agreement upon thirty (30) days written notice.",
+            "source_hash": "sha256:8eee7d2845c49f566d8841b17cbfd3d2938b881af30b3e2271596b424a9daf47"
+          }
+        ]
+      },
+      "generator_output": {
+        "component": "generator",
+        "claims": [
+          {
+            "text": "The governing law is New York.",
+            "cited_chunk_id": "c-9999"
+          }
+        ]
+      }
+    }
+  ]
+}
