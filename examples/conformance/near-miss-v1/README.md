@@ -15,6 +15,7 @@ Near-miss conformance vectors for the `action_ref` spec. Each vector represents 
 | `rescoped_replay` | `RESCOPED_REPLAY` | Attestation issued for `read` scope presented against `write` scope — `action_ref` mismatch |
 | `semantic_drift` | `SEMANTIC_DRIFT` | `action_type` differs between issuance (`behavioral_eval`) and verification (`behavioral`) — vocabulary drift |
 | `same_action_ref_different_state` | `KNOWN_DESIGN_PROPERTY` | Same preimage, different execution state (in-progress vs terminal) → same `action_ref`. Correct by design; a verifier MUST NOT reject on this basis |
+| `provenance_loop` | `PROVENANCE_LOOP` | Composition artifact parent chain contains a cycle (A→B→A). Verifier MUST walk with a visited set and reject on revisit |
 
 ## Verification
 
@@ -34,6 +35,12 @@ A conformant verifier **MUST**:
 2. Reject with `RESCOPED_REPLAY` if embedded and recomputed `action_ref` diverge.
 3. Reject with `AMBIGUOUS_ISSUER_BINDING` if `(claim_type, evidenceType, source_provider_did)` does not uniquely select a verdict.
 4. Reject with `SEMANTIC_DRIFT` if `action_type` is not from the closed canonical vocabulary at both issuance and verification.
+5. Walk `parent_composition_ref` chains with a visited set and reject with `PROVENANCE_LOOP` on revisit.
+
+And **MUST NOT** reject when:
+- Two receipts share the same `action_ref` but differ in execution state (`KNOWN_DESIGN_PROPERTY`).
+
+Run `python3 verify.py` to validate all five vectors.
 
 ## Attribution
 

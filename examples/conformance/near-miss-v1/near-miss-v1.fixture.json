@@ -236,6 +236,51 @@
       "expected_error_code": null,
       "verifier_rule": "A verifier MUST NOT reject the shared action_ref as a collision or replay. To determine whether an action reached a terminal state, inspect the `terminal` field (or equivalent) in the signed receipt — not action_ref alone.",
       "rationale": "action_ref is state-agnostic by design. It identifies what action was claimed (who, what type, what scope, when) — not the execution outcome. Multiple receipts for the same action instance in different states are expected and correct. The signing layer (signing-trust-ref-v1) covers the full envelope including the terminal field, which is the authoritative signal for state. See docs/spec/action-ref.md §State vs Identity."
+    },
+    {
+      "name": "provenance_loop",
+      "failure_mode": "PROVENANCE_LOOP",
+      "description": "A composition artifact parent chain contains a cycle: artifact A declares parent = B, artifact B declares parent = A. Walking the chain with a visited-set detects the revisit and MUST reject with PROVENANCE_LOOP. Fail-closed: a verifier that does not track visited nodes will loop indefinitely or resolve a root it does not own.",
+      "note": "composition_ref values in parent_chain entries are graph-traversal labels (synthetic). The jcs_hash fields contain the actual SHA-256(JCS(artifact)) for each node — those are byte-verified independently. Loop detection operates on the declared composition_ref labels, not the JCS hashes.",
+      "parent_chain": [
+        {
+          "composition_ref": "aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01",
+          "jcs_hash": "2d6aca186877004ad00aa1bc18bbdfb4cc44986a6ffc8824383930de95cbc116",
+          "jcs_canonical": "{\"action_ref\":\"584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f\",\"authority_verified_at_ms\":1748087390000,\"composition_key\":\"comp_loop_node_a\",\"delegation_ref\":\"69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb\",\"parent_composition_ref\":\"bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10\",\"revocation_check_at_ms\":1748087395000,\"revocation_ref\":\"50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5\",\"scope\":\"mycelium:payment\",\"version\":\"composition-ref-v1\"}",
+          "artifact": {
+            "action_ref": "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+            "authority_verified_at_ms": 1748087390000,
+            "composition_key": "comp_loop_node_a",
+            "delegation_ref": "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+            "parent_composition_ref": "bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10",
+            "revocation_check_at_ms": 1748087395000,
+            "revocation_ref": "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+            "scope": "mycelium:payment",
+            "version": "composition-ref-v1"
+          }
+        },
+        {
+          "composition_ref": "bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10dd20ee30ff40aa50bb10",
+          "jcs_hash": "075a7330c9f361ad60d54786127cd510232c0ae44fd83abc6f07dd68cb44dfc5",
+          "jcs_canonical": "{\"action_ref\":\"584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f\",\"authority_verified_at_ms\":1748090000000,\"composition_key\":\"comp_loop_node_b\",\"delegation_ref\":\"69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb\",\"parent_composition_ref\":\"aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01\",\"revocation_check_at_ms\":1748090005000,\"revocation_ref\":\"50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5\",\"scope\":\"mycelium:payment\",\"version\":\"composition-ref-v1\"}",
+          "artifact": {
+            "action_ref": "584bc79bb11ce3af5058b3da84d03f85e4aa464a175bd4f913aeb82a22cef60f",
+            "authority_verified_at_ms": 1748090000000,
+            "composition_key": "comp_loop_node_b",
+            "delegation_ref": "69e672d1ba7484e3620d4d4ed9b366c4d4c8b203c4176f60f000e2b793761ffb",
+            "parent_composition_ref": "aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01",
+            "revocation_check_at_ms": 1748090005000,
+            "revocation_ref": "50cb4f3d564763cd11dde45950ef8298e92f468070a27f125dfd658d45d5eca5",
+            "scope": "mycelium:payment",
+            "version": "composition-ref-v1"
+          }
+        }
+      ],
+      "traversal_start": "aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01cc02dd03ee04ff05aa01",
+      "expected_result": "fail-closed",
+      "expected_error_code": "PROVENANCE_LOOP",
+      "verifier_rule": "Walk parent_composition_ref from traversal_start maintaining a visited set of composition_ref values. On revisit → reject PROVENANCE_LOOP. A verifier without visited-set tracking will loop indefinitely.",
+      "rationale": "A composition artifact parent chain that cycles is a provenance graph integrity failure. The verifier cannot establish a root anchor without termination, and an attacker who controls any node in the cycle can prevent root verification indefinitely. Fail-closed is required: accepting a cyclic chain leaks the unverified tail of the provenance graph as implicitly trusted."
     }
   ]
 }
