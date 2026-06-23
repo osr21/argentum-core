@@ -104,13 +104,6 @@ that the action was admitted after evaluating the counterparty's reputation snap
 
 ## counterparty_ref_anchor (optional extension field)
 
-> **Status: under specification.** The anchoring mechanism below is being finalized.
-> The companion contract is a dedicated, permissionless anchor registry — not
-> `GiskardPayments` and not the karma/identity registry. Concrete contract addresses
-> and a worked example will be published here once the registry is deployed and a real
-> anchoring transaction exists on-chain. Until then, treat `counterparty_ref` as a
-> locally-trusted hash.
-
 `counterparty_ref_anchor` is an optional companion field to `counterparty_ref`.
 When present, it provides a verifiable on-chain pointer to the transaction that
 anchored the preimage hash at snapshot time.
@@ -130,6 +123,27 @@ Permissionlessness is deliberate: the anchor's verifiability must not depend on 
 operator that produced the snapshot. This is what separates an operator-independent
 anchor from an operator-gated one.
 
+### Anchor registry (deployed)
+
+The anchor is recorded on **AnchorRegistry**, a dedicated single-purpose contract:
+no owner, no funds, no roles — `anchor(bytes32)` is its only function. It is deployed
+at one canonical address across every chain via CREATE2 (salt
+`keccak256("mycelium.anchor.registry.v1")`):
+
+`0x49fEcA52bC634a9Ab773226D16619deC547794aa`
+
+| Chain | Chain ID | Address |
+|-------|----------|---------|
+| Arbitrum One | 42161 | `0x49fEcA52bC634a9Ab773226D16619deC547794aa` |
+| Base | 8453 | `0x49fEcA52bC634a9Ab773226D16619deC547794aa` |
+
+The single canonical address is itself the verifier binding: a conformant
+`counterparty_ref_anchor.contract` MUST equal this address. An anchor recorded on any
+other contract is out of spec — it reintroduces operator choice over where the
+commitment lives, which is exactly what the permissionless registry removes.
+
+Source: [`giskard-payments/src/AnchorRegistry.sol`](https://github.com/giskard09/giskard-payments/blob/main/src/AnchorRegistry.sol).
+
 ### Schema
 
 ```json
@@ -145,6 +159,37 @@ anchor from an operator-gated one.
 | `chain_id` | integer | EVM chain ID where the anchor tx was submitted. |
 | `contract` | string | Checksummed address of the anchor registry on that chain. |
 | `tx_hash` | string | Hash of the `anchor(bytes32)` transaction that anchored `counterparty_ref`. |
+
+### Worked example (real on-chain anchor)
+
+Taking the preimage from [Derivation](#derivation) above, its
+`counterparty_ref` is:
+
+```
+f969b8828e9c23a07cce4b1e2f10e7771ceca6ef9d924b2461819f548227fee0
+```
+
+That hash was anchored on Arbitrum One by calling
+`anchor(0xf969…fee0)` on the registry. The resulting `counterparty_ref_anchor`:
+
+```json
+"counterparty_ref_anchor": {
+  "chain_id": 42161,
+  "contract": "0x49fEcA52bC634a9Ab773226D16619deC547794aa",
+  "tx_hash":  "0xce34a07e547f670d7dbade05e42e164d869f126cd68e9504dba60214d51406cc"
+}
+```
+
+Anyone can verify it against a public RPC:
+
+```bash
+cast receipt 0xce34a07e547f670d7dbade05e42e164d869f126cd68e9504dba60214d51406cc \
+  --rpc-url https://arb1.arbitrum.io/rpc
+```
+
+The transaction's `Anchored` event carries the `counterparty_ref` above as its indexed
+`ref` topic and `block.timestamp` as the commitment time — no operator cooperation
+required.
 
 ### Verification
 
