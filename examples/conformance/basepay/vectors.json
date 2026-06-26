@@ -99,6 +99,7 @@
     },
     {
       "id": "basepay-subscription",
+      "authority_source": "contract deployment tx calldata (interval_seconds, amount_per_interval, recipient committed on-chain)",
       "description": "Subscription / recurring obligation. The pre-action claim sets creates_recurring_obligation: true, interval_seconds, and amount_per_interval. The post-execution receipt carries the contract address and timestamp of the first charge. Any claim with creates_recurring_obligation == true MUST be routed to human approval before execution.",
       "preimage": {
         "action_type": "basepay:subscription.create",
