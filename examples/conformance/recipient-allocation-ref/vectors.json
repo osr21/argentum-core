@@ -1,0 +1,93 @@
+{
+  "fixture_id": "recipient-allocation-ref-v1",
+  "version": "v1",
+  "spec": "docs/spec/recipient-allocation-ref-v1.md",
+  "hash_algo": "sha256",
+  "preimage_format": "jcs-rfc8785-v1",
+  "reproduce_in_python": "import hashlib, json\ndef jcs(obj): return json.dumps(obj, separators=(',',':'), sort_keys=True, ensure_ascii=False)\nrecipient_allocation_ref = hashlib.sha256(jcs(preimage).encode()).hexdigest()",
+  "vectors": [
+    {
+      "id": "allocation-batch-3-recipients",
+      "authority_source": "ERC-2612 permit signature + calldata (recipient set, amounts, memo)",
+      "description": "Batch payment to 3 recipients. recipient_allocations sorted lexicographically by address. Verifier recomputes recipient_allocation_ref from calldata and confirms it matches the committed ref.",
+      "preimage": {
+        "aggregate_usdc": "3000000",
+        "currency": "USDC",
+        "recipient_allocations": [
+          {"address": "0xaaa0000000000000000000000000000000000001", "amount_usdc": "1000000"},
+          {"address": "0xbbb0000000000000000000000000000000000002", "amount_usdc": "1500000"},
+          {"address": "0xccc0000000000000000000000000000000000003", "amount_usdc": "500000"}
+        ],
+        "timestamp_ms": 1750953600000
+      },
+      "preimage_canonical_bytes_hex": "7b226167677265676174655f75736463223a2233303030303030222c2263757272656e6379223a2255534443222c22726563697069656e745f616c6c6f636174696f6e73223a5b7b2261646472657373223a22307861616130303030303030303030303030303030303030303030303030303030303030303030303031222c22616d6f756e745f75736463223a2231303030303030227d2c7b2261646472657373223a22307862626230303030303030303030303030303030303030303030303030303030303030303030303032222c22616d6f756e745f75736463223a2231353030303030227d2c7b2261646472657373223a22307863636330303030303030303030303030303030303030303030303030303030303030303030303033222c22616d6f756e745f75736463223a22353030303030227d5d2c2274696d657374616d705f6d73223a313735303935333630303030307d",
+      "recipient_allocation_ref": "a774a2a065e7bf0e94f217c3946695bc4db89dafc559193329222213d7f21b08",
+      "invariants": [
+        {
+          "id": "allocation_ref_match",
+          "description": "sha256(jcs(preimage)) MUST equal the committed recipient_allocation_ref. Any deviation in address, amount, aggregate, currency, or timestamp produces a distinct hash.",
+          "verify": "sha256(jcs({aggregate_usdc, currency, recipient_allocations, timestamp_ms})) == recipient_allocation_ref"
+        },
+        {
+          "id": "aggregate_equals_sum",
+          "description": "aggregate_usdc MUST equal the sum of all amount_usdc values. A mismatch signals a malformed preimage.",
+          "verify": "sum(allocation.amount_usdc for allocation in recipient_allocations) == aggregate_usdc"
+        },
+        {
+          "id": "allocations_sorted",
+          "description": "recipient_allocations MUST be sorted lexicographically by address (ascending). Unsorted input produces a different JCS output and therefore a different ref.",
+          "verify": "recipient_allocations == sorted(recipient_allocations, key=lambda a: a['address'].lower())"
+        }
+      ],
+      "verification_mode": "asserted"
+    }
+  ],
+  "negative_vectors": [
+    {
+      "id": "allocation-redistribution-negative",
+      "authority_source": "per-recipient amount_usdc binding",
+      "failure_mode": "ALLOCATION_REDISTRIBUTION",
+      "description": "Same 3 recipients, same aggregate (3000000 USDC), but amounts redistributed: 0xaaa receives 2000000 instead of 1000000, 0xbbb receives 500000 instead of 1500000. recipient_set_hash passes; recipient_allocation_ref MUST reject.",
+      "notes": {
+        "gap": "recipient_set_hash cannot detect this failure — address set is identical. Only recipient_allocation_ref catches the redistribution.",
+        "recompute": "Verifier persists issued_at_ms and expires_at_ms from the decision_ref to recompute the committed ref at verification time."
+      },
+      "committed": {
+        "recipient_allocation_ref": "a774a2a065e7bf0e94f217c3946695bc4db89dafc559193329222213d7f21b08",
+        "preimage": {
+          "aggregate_usdc": "3000000",
+          "currency": "USDC",
+          "recipient_allocations": [
+            {"address": "0xaaa0000000000000000000000000000000000001", "amount_usdc": "1000000"},
+            {"address": "0xbbb0000000000000000000000000000000000002", "amount_usdc": "1500000"},
+            {"address": "0xccc0000000000000000000000000000000000003", "amount_usdc": "500000"}
+          ],
+          "timestamp_ms": 1750953600000
+        },
+        "preimage_canonical_bytes_hex": "7b226167677265676174655f75736463223a2233303030303030222c2263757272656e6379223a2255534443222c22726563697069656e745f616c6c6f636174696f6e73223a5b7b2261646472657373223a22307861616130303030303030303030303030303030303030303030303030303030303030303030303031222c22616d6f756e745f75736463223a2231303030303030227d2c7b2261646472657373223a22307862626230303030303030303030303030303030303030303030303030303030303030303030303032222c22616d6f756e745f75736463223a2231353030303030227d2c7b2261646472657373223a22307863636330303030303030303030303030303030303030303030303030303030303030303030303033222c22616d6f756e745f75736463223a22353030303030227d5d2c2274696d657374616d705f6d73223a313735303935333630303030307d"
+      },
+      "executed": {
+        "recomputed_ref": "e8faed6d38ece6e31b90966778c837f9175528fda309df05994415cc5efdc077",
+        "preimage": {
+          "aggregate_usdc": "3000000",
+          "currency": "USDC",
+          "recipient_allocations": [
+            {"address": "0xaaa0000000000000000000000000000000000001", "amount_usdc": "2000000"},
+            {"address": "0xbbb0000000000000000000000000000000000002", "amount_usdc": "500000"},
+            {"address": "0xccc0000000000000000000000000000000000003", "amount_usdc": "500000"}
+          ],
+          "timestamp_ms": 1750953600000
+        },
+        "preimage_canonical_bytes_hex": "7b226167677265676174655f75736463223a2233303030303030222c2263757272656e6379223a2255534443222c22726563697069656e745f616c6c6f636174696f6e73223a5b7b2261646472657373223a22307861616130303030303030303030303030303030303030303030303030303030303030303030303031222c22616d6f756e745f75736463223a2232303030303030227d2c7b2261646472657373223a22307862626230303030303030303030303030303030303030303030303030303030303030303030303032222c22616d6f756e745f75736463223a22353030303030227d2c7b2261646472657373223a22307863636330303030303030303030303030303030303030303030303030303030303030303030303033222c22616d6f756e745f75736463223a22353030303030227d5d2c2274696d657374616d705f6d73223a313735303935333630303030307d"
+      },
+      "decision_ref_context": {
+        "issued_at_ms": 1750953600000,
+        "expires_at_ms": 1750957200000,
+        "note": "Verifier persists issued_at_ms and expires_at_ms from the decision_ref to recompute the committed ref. The timestamp_ms in the preimage is issued_at_ms."
+      },
+      "invariant": "sha256(jcs(committed.preimage)) == committed.recipient_allocation_ref AND sha256(jcs(committed.preimage)) != sha256(jcs(executed.preimage))",
+      "expected_error_code": "ALLOCATION_REDISTRIBUTION",
+      "verification_mode": "asserted"
+    }
+  ]
+}
